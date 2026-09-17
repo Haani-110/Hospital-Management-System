@@ -257,7 +257,7 @@ public class MedicalRecordController {
             if (n != null) populateForm(n);
         });
 
-        VBox tableBtnRow = new HBox(10);
+        HBox tableBtnRow = new HBox(10);
         viewDetailsButton = new Button("View Details");
         viewDetailsButton.getStyleClass().add("secondary-button");
         viewDetailsButton.setDisable(true);
