@@ -1,0 +1,268 @@
+/* Hospital Management System - Phase 1 stylesheet */
+
+.root {
+    -fx-font-family: "System", "Segoe UI", "Ubuntu", sans-serif;
+    -fx-background-color: #f4f6fa;
+    -fx-font-size: 14px;
+}
+
+/* ---------- Login screen ---------- */
+.title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f3a8a;
+}
+
+.subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6b7280;
+}
+
+/* ComboBox consistent with text fields */
+.combo-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+.combo-box:focused {
+    -fx-border-color: #2563eb;
+}
+.combo-box .list-cell {
+    -fx-padding: 4 8 4 8;
+}
+
+/* Textarea consistent with text fields */
+.text-area {
+    -fx-background-color: transparent;
+}
+.text-area .content {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+.text-area:focused .content {
+    -fx-border-color: #2563eb;
+}
+
+.text-field, .password-field {
+    -fx-min-width: 260px;
+    -fx-padding: 8 12 8 12;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #2563eb;
+}
+
+.primary-button {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 9 20 9 20;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+.primary-button:hover {
+    -fx-background-color: #1d4ed8;
+}
+
+.secondary-button {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #1f2937;
+    -fx-border-color: #d1d5db;
+    -fx-padding: 7 14 7 14;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+.secondary-button:hover {
+    -fx-background-color: #f3f4f6;
+}
+
+.error {
+    -fx-text-fill: #b91c1c;
+    -fx-background-color: #fee2e2;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 4;
+    -fx-border-color: #fecaca;
+    -fx-border-radius: 4;
+    -fx-max-width: 320px;
+}
+
+/* ---------- Dashboard ---------- */
+.sidebar {
+    -fx-background-color: #1f3a8a;
+}
+.sidebar-title {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 8 0;
+}
+.nav-item {
+    -fx-text-fill: #e5e7eb;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+.nav-item-active {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.nav-item-disabled {
+    -fx-text-fill: #9ca3af;
+    -fx-cursor: default;
+}
+.separator *.line {
+    -fx-border-color: #3b5bb5;
+}
+
+.topbar {
+    -fx-background-color: white;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 0 0 1 0;
+}
+
+.page-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2937;
+}
+
+.user-info {
+    -fx-text-fill: #4b5563;
+}
+
+.welcome {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f3a8a;
+}
+.info-text {
+    -fx-text-fill: #4b5563;
+    -fx-font-size: 14px;
+    -fx-wrap-text: true;
+}
+
+/* ---------- Cards / content panels ---------- */
+.card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+.section-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2937;
+}
+
+/* ---------- Tables ---------- */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+.table-view .column-header-background {
+    -fx-background-color: #f3f4f6;
+}
+.table-view .column-header, .table-view .filler {
+    -fx-background-color: transparent;
+    -fx-size: 32;
+    -fx-border-color: transparent transparent #e5e7eb transparent;
+}
+.table-view .column-header .label {
+    -fx-text-fill: #1f2937;
+    -fx-font-weight: bold;
+}
+.table-row-cell {
+    -fx-border-color: transparent transparent #f3f4f6 transparent;
+    -fx-background-color: white;
+}
+.table-row-cell:odd {
+    -fx-background-color: #fafbfc;
+}
+.table-row-cell:selected {
+    -fx-background-color: #dbeafe;
+    -fx-text-fill: #1f3a8a;
+}
+.table-row-cell:selected .text {
+    -fx-fill: #1f3a8a;
+}
+.table-view .placeholder .label {
+    -fx-text-fill: #6b7280;
+    -fx-font-style: italic;
+    -fx-padding: 30;
+}
+
+/* ---------- Sidebar button (clickable nav items) ---------- */
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e5e7eb;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-alignment: CENTER_LEFT;
+    -fx-font-size: 14px;
+}
+.nav-button:hover {
+    -fx-background-color: #2b4aa0;
+    -fx-text-fill: white;
+}
+.nav-button.nav-item-active {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+/* ---------- Danger button ---------- */
+.danger-button {
+    -fx-background-color: #dc2626;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 9 20 9 20;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+.danger-button:hover {
+    -fx-background-color: #b91c1c;
+}
+.danger-button:disabled {
+    -fx-background-color: #fca5a5;
+    -fx-text-fill: #fee2e2;
+    -fx-cursor: default;
+}
+
+/* ---------- Success message ---------- */
+.success {
+    -fx-text-fill: #065f46;
+    -fx-background-color: #d1fae5;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 4;
+    -fx-border-color: #a7f3d0;
+    -fx-border-radius: 4;
+    -fx-max-width: 360px;
+}
+
+/* Disabled fields should still be readable (lighter) */
+.text-field:disabled, .password-field:disabled, .text-area:disabled {
+    -fx-opacity: 0.65;
+    -fx-border-color: #e5e7eb;
+}
+
+/* Alerts use the same font as the rest of the app */
+.dialog-pane {
+    -fx-font-family: "System", "Segoe UI", "Ubuntu", sans-serif;
+}
+.dialog-pane .text-field, .dialog-pane .password-field {
+    -fx-min-width: 240px;
+    -fx-padding: 6 10 6 10;
+}
