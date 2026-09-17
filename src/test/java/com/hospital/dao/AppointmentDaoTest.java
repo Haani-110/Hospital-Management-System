@@ -123,7 +123,7 @@ class AppointmentDaoTest {
     @Test
     void search_filtersByQueryCaseInsensitively() {
         dao.create(patientId, doctorId, "2030-01-15", "09:30", "Headache", null);
-        dao.create(patient2Id, doctorId, "2030-01-16", "10:00", "Checkup", null);
+        dao.create(patient2Id, doctor2Id, "2030-01-16", "10:00", "Checkup", null);
         assertEquals(2, dao.search(null, null, null, 0).size());
         assertEquals(1, dao.search("alice", null, null, 0).size());
         assertEquals(1, dao.search("PAT-000002", null, null, 0).size());

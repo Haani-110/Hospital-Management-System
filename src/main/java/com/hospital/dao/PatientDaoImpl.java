@@ -137,26 +137,33 @@ public class PatientDaoImpl implements PatientDao {
     public List<Patient> search(String query, Boolean activeFilter) {
         List<Patient> result = new ArrayList<>();
         StringBuilder sql = new StringBuilder(BASE_SELECT);
-        List<Object> params = new ArrayList<>();
         List<String> where = new ArrayList<>();
 
+        String like = null;
         if (query != null && !query.isBlank()) {
-            String like = "%" + query.trim().toLowerCase() + "%";
+            like = "%" + query.trim().toLowerCase() + "%";
             where.add("(LOWER(patient_code) LIKE ? OR LOWER(full_name) LIKE ? " +
                     "OR LOWER(COALESCE(phone,'')) LIKE ? OR LOWER(COALESCE(email,'')) LIKE ?)");
-            for (int i = 0; i < 4; i++) params.add(like);
         }
+        Integer activeInt = null;
         if (activeFilter != null) {
             where.add("is_active = ?");
-            params.add(activeFilter ? 1 : 0);
+            activeInt = activeFilter ? 1 : 0;
         }
         if (!where.isEmpty()) sql.append("WHERE ").append(String.join(" AND ", where)).append(" ");
         sql.append("ORDER BY full_name COLLATE NOCASE ASC");
 
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int idx = 1;
+            if (like != null) {
+                ps.setString(idx++, like);
+                ps.setString(idx++, like);
+                ps.setString(idx++, like);
+                ps.setString(idx++, like);
+            }
+            if (activeInt != null) {
+                ps.setInt(idx++, activeInt);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) result.add(mapRow(rs));
