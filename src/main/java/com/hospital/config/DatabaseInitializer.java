@@ -100,6 +100,25 @@ public class DatabaseInitializer {
                 );
                 """);
 
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS medical_records (
+                    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                    appointment_id   INTEGER NOT NULL UNIQUE,
+                    patient_id       INTEGER NOT NULL,
+                    doctor_id        INTEGER NOT NULL,
+                    diagnosis        TEXT    NOT NULL,
+                    symptoms         TEXT,
+                    examination      TEXT,
+                    treatment_notes  TEXT,
+                    record_date      TEXT    NOT NULL,
+                    created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (appointment_id) REFERENCES appointments(id),
+                    FOREIGN KEY (patient_id)     REFERENCES patients(id),
+                    FOREIGN KEY (doctor_id)      REFERENCES doctors(id)
+                );
+                """);
+
             // Phase 2.2 migration: ensure is_active column exists on legacy users DBs.
             if (!columnExists(conn, "users", "is_active")) {
                 stmt.execute("ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;");

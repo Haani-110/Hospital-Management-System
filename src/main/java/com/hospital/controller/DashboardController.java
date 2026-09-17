@@ -37,6 +37,7 @@ public class DashboardController {
     private Runnable onOpenDoctors;
     private Runnable onOpenPatients;
     private Runnable onOpenAppointments;
+    private Runnable onOpenMedicalRecords;
 
     private User currentUser;
 
@@ -67,6 +68,10 @@ public class DashboardController {
 
     public void setOnOpenAppointments(Runnable onOpenAppointments) {
         this.onOpenAppointments = onOpenAppointments;
+    }
+
+    public void setOnOpenMedicalRecords(Runnable onOpenMedicalRecords) {
+        this.onOpenMedicalRecords = onOpenMedicalRecords;
     }
 
     public void setCurrentUser(User user) {
@@ -174,6 +179,22 @@ public class DashboardController {
             appointmentsItem = navLabel("Appointments", false, true);
         }
 
+        // Medical Records: available to every authenticated user (service enforces
+        // mutation permissions by role).
+        Node medicalRecordsItem;
+        if (isLoggedIn) {
+            Button btn = new Button("Medical Records");
+            btn.getStyleClass().addAll("nav-item", "nav-button");
+            btn.setMaxWidth(Double.MAX_VALUE);
+            btn.setOnAction(e -> {
+                if (onOpenMedicalRecords != null) onOpenMedicalRecords.run();
+            });
+            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
+            medicalRecordsItem = btn;
+        } else {
+            medicalRecordsItem = navLabel("Medical Records", false, true);
+        }
+
         sidebar.getChildren().addAll(
                 appTitle,
                 new Separator(),
@@ -183,7 +204,7 @@ public class DashboardController {
                 departmentsItem,
                 userManagementItem,
                 appointmentsItem,
-                navLabel("Medical Records", false, true),
+                medicalRecordsItem,
                 navLabel("Prescriptions", false, true),
                 navLabel("Billing", false, true)
         );

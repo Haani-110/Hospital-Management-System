@@ -34,5 +34,8 @@ public interface DoctorDao {
     /** @return true if a doctor row exists with the given id. */
     boolean existsById(int id);
 
+    /** @return the doctor profile linked to the given user id, if any. */
+    java.util.Optional<Doctor> findByUserId(int userId);
+
     int count();
 }

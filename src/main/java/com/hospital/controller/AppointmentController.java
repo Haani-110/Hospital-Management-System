@@ -67,6 +67,7 @@ public class AppointmentController {
     private Runnable onOpenDoctors;
     private Runnable onOpenPatients;
     private Runnable onOpenUserManagement;
+    private Runnable onOpenMedicalRecords;
 
     private TableView<Appointment> table;
     private TextField searchField;
@@ -106,6 +107,7 @@ public class AppointmentController {
     public void setOnOpenDoctors(Runnable r) { this.onOpenDoctors = r; }
     public void setOnOpenPatients(Runnable r) { this.onOpenPatients = r; }
     public void setOnOpenUserManagement(Runnable r) { this.onOpenUserManagement = r; }
+    public void setOnOpenMedicalRecords(Runnable r) { this.onOpenMedicalRecords = r; }
 
     public Scene buildScene() {
         BorderPane root = new BorderPane();
@@ -172,8 +174,13 @@ public class AppointmentController {
         here.getStyleClass().addAll("nav-item", "nav-item-active");
         VBox.setMargin(here, new Insets(2, 0, 2, 0));
 
-        sidebar.getChildren().addAll(t, new Separator(), dash, patients, here, doctors, depts, users,
-                disabledItem("Medical Records"), disabledItem("Prescriptions"), disabledItem("Billing"));
+        Button recordsBtn = new Button("Medical Records");
+        styleNav(recordsBtn);
+        recordsBtn.setOnAction(e -> { if (onOpenMedicalRecords != null) onOpenMedicalRecords.run(); });
+
+        sidebar.getChildren().addAll(t, new Separator(), dash, patients, here, doctors, recordsBtn,
+                depts, users,
+                disabledItem("Prescriptions"), disabledItem("Billing"));
         return sidebar;
     }
 

@@ -41,6 +41,7 @@ class DatabaseInitializerTest {
         assertTrue(tables.contains("doctors"), "doctors table must exist");
         assertTrue(tables.contains("patients"), "patients table must exist");
         assertTrue(tables.contains("appointments"), "appointments table must exist");
+        assertTrue(tables.contains("medical_records"), "medical_records table must exist");
     }
 
     @Test
@@ -55,6 +56,7 @@ class DatabaseInitializerTest {
         assertTrue(tables.contains("doctors"));
         assertTrue(tables.contains("patients"));
         assertTrue(tables.contains("appointments"));
+        assertTrue(tables.contains("medical_records"));
     }
 
     @Test
@@ -240,6 +242,23 @@ class DatabaseInitializerTest {
     }
 
     @Test
+    void medicalRecordsTableHasExpectedColumns() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        Set<String> cols = listColumns(db, "medical_records");
+        assertTrue(cols.contains("id"));
+        assertTrue(cols.contains("appointment_id"));
+        assertTrue(cols.contains("patient_id"));
+        assertTrue(cols.contains("doctor_id"));
+        assertTrue(cols.contains("diagnosis"));
+        assertTrue(cols.contains("symptoms"));
+        assertTrue(cols.contains("examination"));
+        assertTrue(cols.contains("treatment_notes"));
+        assertTrue(cols.contains("record_date"));
+        assertTrue(cols.contains("created_at"));
+        assertTrue(cols.contains("updated_at"));
+    }
+
+    @Test
     void foreignKeysAreEnforced() throws Exception {
         new DatabaseInitializer(db).initialize();
         // Inserting an appointment with a bad doctor_id should fail because FKs are enabled.
@@ -249,6 +268,12 @@ class DatabaseInitializerTest {
             assertThrows(Exception.class, () ->
                     s.executeUpdate("INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time) " +
                             "VALUES (1, 9999, '2030-01-01', '09:00')"));
+        }
+        // Medical records must also enforce FK against appointments.
+        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
+            assertThrows(Exception.class, () ->
+                    s.executeUpdate("INSERT INTO medical_records (appointment_id, patient_id, doctor_id, diagnosis, record_date) " +
+                            "VALUES (9999, 1, 1, 'Dx', '2030-01-01')"));
         }
     }
 

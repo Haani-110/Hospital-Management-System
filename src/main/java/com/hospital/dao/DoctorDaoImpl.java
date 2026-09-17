@@ -167,6 +167,21 @@ public class DoctorDaoImpl implements DoctorDao {
     }
 
     @Override
+    public Optional<Doctor> findByUserId(int userId) {
+        final String sql = BASE_SELECT + "WHERE d.user_id = ?";
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Optional.of(mapRow(rs));
+                return Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Error looking up doctor by user id=" + userId, e);
+        }
+    }
+
+    @Override
     public int count() {
         final String sql = "SELECT COUNT(*) AS c FROM doctors";
         try (Connection conn = dbConnection.getConnection();
