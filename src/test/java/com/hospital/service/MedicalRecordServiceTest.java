@@ -13,6 +13,8 @@ import com.hospital.dao.MedicalRecordDao;
 import com.hospital.dao.MedicalRecordDaoImpl;
 import com.hospital.dao.PatientDao;
 import com.hospital.dao.PatientDaoImpl;
+import com.hospital.dao.UserDao;
+import com.hospital.dao.UserDaoImpl;
 import com.hospital.exception.AuthorizationException;
 import com.hospital.exception.ValidationException;
 import com.hospital.model.Appointment;
@@ -56,6 +58,7 @@ class MedicalRecordServiceTest {
         PatientDao patientDao = new PatientDaoImpl(db);
         DoctorDao doctorDao = new DoctorDaoImpl(db);
         DepartmentDao deptDao = new DepartmentDaoImpl(db);
+        UserDao userDao = new UserDaoImpl(db);
         appointmentDao = new AppointmentDaoImpl(db);
         MedicalRecordDao medicalRecordDao = new MedicalRecordDaoImpl(db);
 
@@ -64,7 +67,10 @@ class MedicalRecordServiceTest {
         int cardId = deptDao.create("Cardiology", null);
         patientId = patientDao.create("PAT-000001", "Alice", null, null, null, null, null, null, null, null);
         doctorId = doctorDao.create(null, cardId, "Dr. Khan", "Cardiologist", null, null, 0);
-        linkedDoctorId = doctorDao.create(998, cardId, "Dr. Linked", "Cardiologist", null, null, 0);
+
+        // The "linked" doctor must have a real user row because doctors.user_id is a foreign key.
+        int linkedUserId = userDao.create("dr_linked", "h", Role.DOCTOR);
+        linkedDoctorId = doctorDao.create(linkedUserId, cardId, "Dr. Linked", "Cardiologist", null, null, 0);
 
         completedApptId = appointmentDao.create(patientId, doctorId, "2030-01-15", "09:30", null, null);
         appointmentDao.updateStatus(completedApptId, Appointment.STATUS_COMPLETED);
@@ -73,14 +79,16 @@ class MedicalRecordServiceTest {
         cancelledApptId = appointmentDao.create(patientId, doctorId, "2030-01-21", "11:00", null, null);
         appointmentDao.updateStatus(cancelledApptId, Appointment.STATUS_CANCELLED);
 
-        // Link a second completed appointment to the linked doctor for DOCTOR role tests.
+        // A second COMPLETED appointment owned by the linked doctor, for DOCTOR-role ownership tests.
         int completedApptLinkedId = appointmentDao.create(patientId, linkedDoctorId, "2030-02-01", "09:00", null, null);
         appointmentDao.updateStatus(completedApptLinkedId, Appointment.STATUS_COMPLETED);
 
         adminUser = new User(901, "admin", "h", Role.ADMIN, true, LocalDateTime.now());
         receptionistUser = new User(902, "rec", "h", Role.RECEPTIONIST, true, LocalDateTime.now());
         unlinkedDoctorUser = new User(903, "dr", "h", Role.DOCTOR, true, LocalDateTime.now());
-        linkedDoctorUser = new User(998, "drl", "h", Role.DOCTOR, true, LocalDateTime.now());
+        // The linked DOCTOR session user must carry the same id as the persisted user row
+        // so that DoctorDao.findByUserId matches.
+        linkedDoctorUser = new User(linkedUserId, "drl", "h", Role.DOCTOR, true, LocalDateTime.now());
     }
 
     @AfterEach
