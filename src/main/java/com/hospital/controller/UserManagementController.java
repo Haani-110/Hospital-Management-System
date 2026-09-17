@@ -56,6 +56,7 @@ public class UserManagementController {
     private Runnable onOpenPatients;
     private Runnable onOpenAppointments;
     private Runnable onOpenMedicalRecords;
+    private Runnable onOpenPrescriptions;
 
     private TableView<User> table;
     private TextField usernameField;
@@ -98,6 +99,10 @@ public class UserManagementController {
 
     public void setOnOpenMedicalRecords(Runnable onOpenMedicalRecords) {
         this.onOpenMedicalRecords = onOpenMedicalRecords;
+    }
+
+    public void setOnOpenPrescriptions(Runnable onOpenPrescriptions) {
+        this.onOpenPrescriptions = onOpenPrescriptions;
     }
 
     public Scene buildScene() {
@@ -210,6 +215,14 @@ public class UserManagementController {
             if (onOpenMedicalRecords != null) onOpenMedicalRecords.run();
         });
 
+        Button prescBtn = new Button("Prescriptions");
+        prescBtn.getStyleClass().addAll("nav-item", "nav-button");
+        prescBtn.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(prescBtn, new Insets(2, 0, 2, 0));
+        prescBtn.setOnAction(e -> {
+            if (onOpenPrescriptions != null) onOpenPrescriptions.run();
+        });
+
         sidebar.getChildren().addAll(
                 appTitle,
                 new Separator(),
@@ -220,8 +233,7 @@ public class UserManagementController {
                 usersItem,
                 apptBtn,
                 recordsBtn,
-                disabledSidebarItem("Prescriptions"),
-                disabledSidebarItem("Billing")
+                prescBtn
         );
         return sidebar;
     }

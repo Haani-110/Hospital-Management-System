@@ -42,6 +42,8 @@ class DatabaseInitializerTest {
         assertTrue(tables.contains("patients"), "patients table must exist");
         assertTrue(tables.contains("appointments"), "appointments table must exist");
         assertTrue(tables.contains("medical_records"), "medical_records table must exist");
+        assertTrue(tables.contains("prescriptions"), "prescriptions table must exist");
+        assertTrue(tables.contains("prescription_items"), "prescription_items table must exist");
     }
 
     @Test
@@ -57,6 +59,8 @@ class DatabaseInitializerTest {
         assertTrue(tables.contains("patients"));
         assertTrue(tables.contains("appointments"));
         assertTrue(tables.contains("medical_records"));
+        assertTrue(tables.contains("prescriptions"));
+        assertTrue(tables.contains("prescription_items"));
     }
 
     @Test
@@ -274,6 +278,72 @@ class DatabaseInitializerTest {
             assertThrows(Exception.class, () ->
                     s.executeUpdate("INSERT INTO medical_records (appointment_id, patient_id, doctor_id, diagnosis, record_date) " +
                             "VALUES (9999, 1, 1, 'Dx', '2030-01-01')"));
+        }
+    }
+
+    @Test
+    void prescriptionsTableHasExpectedColumns() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        Set<String> cols = listColumns(db, "prescriptions");
+        assertTrue(cols.contains("id"));
+        assertTrue(cols.contains("medical_record_id"));
+        assertTrue(cols.contains("patient_id"));
+        assertTrue(cols.contains("doctor_id"));
+        assertTrue(cols.contains("prescription_date"));
+        assertTrue(cols.contains("notes"));
+        assertTrue(cols.contains("created_at"));
+        assertTrue(cols.contains("updated_at"));
+    }
+
+    @Test
+    void prescriptionItemsTableHasExpectedColumns() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        Set<String> cols = listColumns(db, "prescription_items");
+        assertTrue(cols.contains("id"));
+        assertTrue(cols.contains("prescription_id"));
+        assertTrue(cols.contains("medicine_name"));
+        assertTrue(cols.contains("dosage"));
+        assertTrue(cols.contains("frequency"));
+        assertTrue(cols.contains("duration"));
+        assertTrue(cols.contains("instructions"));
+        assertTrue(cols.contains("created_at"));
+        assertTrue(cols.contains("updated_at"));
+    }
+
+    @Test
+    void prescriptionDeletionCascadesToItems() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
+            s.execute("INSERT INTO patients (patient_code, full_name) VALUES ('PAT-000001', 'Alice')");
+            s.execute("INSERT INTO departments (name) VALUES ('Cardiology')");
+            s.execute("INSERT INTO doctors (department_id, full_name, specialization) " +
+                    "VALUES (1, 'Dr. Khan', 'Cardiologist')");
+            s.execute("INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time) " +
+                    "VALUES (1, 1, '2030-01-15', '09:00')");
+            s.execute("INSERT INTO medical_records (appointment_id, patient_id, doctor_id, diagnosis, record_date) " +
+                    "VALUES (1, 1, 1, 'Dx', '2030-01-15')");
+            s.execute("INSERT INTO prescriptions (medical_record_id, patient_id, doctor_id, prescription_date) " +
+                    "VALUES (1, 1, 1, '2030-01-15')");
+            s.execute("INSERT INTO prescription_items (prescription_id, medicine_name, dosage, frequency, duration) " +
+                    "VALUES (1, 'Paracetamol', '500mg', 'BD', '5 days')");
+
+            // Deleting the prescription must cascade the items away.
+            s.executeUpdate("DELETE FROM prescriptions WHERE id = 1");
+            try (ResultSet rs = s.executeQuery("SELECT COUNT(*) AS c FROM prescription_items")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt("c"), "prescription_items must be deleted when prescription is deleted");
+            }
+        }
+    }
+
+    @Test
+    void prescriptionItemFkRejectsBadPrescription() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
+            assertThrows(Exception.class, () ->
+                    s.executeUpdate("INSERT INTO prescription_items " +
+                            "(prescription_id, medicine_name, dosage, frequency, duration) " +
+                            "VALUES (9999, 'A', '1', 'BD', '1d')"));
         }
     }
 

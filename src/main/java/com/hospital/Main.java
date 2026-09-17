@@ -9,6 +9,7 @@ import com.hospital.controller.DoctorController;
 import com.hospital.controller.LoginController;
 import com.hospital.controller.MedicalRecordController;
 import com.hospital.controller.PatientController;
+import com.hospital.controller.PrescriptionController;
 import com.hospital.controller.UserManagementController;
 import com.hospital.dao.AppointmentDao;
 import com.hospital.dao.AppointmentDaoImpl;
@@ -20,6 +21,10 @@ import com.hospital.dao.MedicalRecordDao;
 import com.hospital.dao.MedicalRecordDaoImpl;
 import com.hospital.dao.PatientDao;
 import com.hospital.dao.PatientDaoImpl;
+import com.hospital.dao.PrescriptionDao;
+import com.hospital.dao.PrescriptionDaoImpl;
+import com.hospital.dao.PrescriptionItemDao;
+import com.hospital.dao.PrescriptionItemDaoImpl;
 import com.hospital.dao.UserDao;
 import com.hospital.dao.UserDaoImpl;
 import com.hospital.service.AppointmentService;
@@ -28,6 +33,7 @@ import com.hospital.service.DepartmentService;
 import com.hospital.service.DoctorService;
 import com.hospital.service.MedicalRecordService;
 import com.hospital.service.PatientService;
+import com.hospital.service.PrescriptionService;
 import com.hospital.service.UserService;
 import com.hospital.util.SceneManager;
 import javafx.application.Application;
@@ -45,6 +51,7 @@ public class Main extends Application {
     private PatientService patientService;
     private AppointmentService appointmentService;
     private MedicalRecordService medicalRecordService;
+    private PrescriptionService prescriptionService;
 
     @Override
     public void init() {
@@ -71,6 +78,11 @@ public class Main extends Application {
 
         MedicalRecordDao medicalRecordDao = new MedicalRecordDaoImpl(dbConnection);
         medicalRecordService = new MedicalRecordService(medicalRecordDao, appointmentDao, doctorDao);
+
+        PrescriptionDao prescriptionDao = new PrescriptionDaoImpl(dbConnection);
+        PrescriptionItemDao prescriptionItemDao = new PrescriptionItemDaoImpl(dbConnection);
+        prescriptionService = new PrescriptionService(prescriptionDao, prescriptionItemDao,
+                medicalRecordDao, doctorDao, dbConnection);
     }
 
     @Override
@@ -91,6 +103,8 @@ public class Main extends Application {
                 appointmentService, patientService, doctorService, sceneManager);
         MedicalRecordController medicalRecordController = new MedicalRecordController(
                 medicalRecordService, appointmentService, sceneManager);
+        PrescriptionController prescriptionController = new PrescriptionController(
+                prescriptionService, medicalRecordService, sceneManager);
 
         // --- Navigation wiring ---
 
@@ -104,6 +118,7 @@ public class Main extends Application {
         Runnable showPatients = () -> sceneManager.show(patientController.buildScene());
         Runnable showAppointments = () -> sceneManager.show(appointmentController.buildScene());
         Runnable showMedicalRecords = () -> sceneManager.show(medicalRecordController.buildScene());
+        Runnable showPrescriptions = () -> sceneManager.show(prescriptionController.buildScene());
 
         loginController.setOnLoginSuccess(user -> {
             dashboardController.setCurrentUser(user);
@@ -116,6 +131,7 @@ public class Main extends Application {
         dashboardController.setOnOpenPatients(showPatients);
         dashboardController.setOnOpenAppointments(showAppointments);
         dashboardController.setOnOpenMedicalRecords(showMedicalRecords);
+        dashboardController.setOnOpenPrescriptions(showPrescriptions);
 
         departmentController.setOnBackToDashboard(showDashboard);
         departmentController.setOnOpenUserManagement(showUsers);
@@ -123,6 +139,7 @@ public class Main extends Application {
         departmentController.setOnOpenPatients(showPatients);
         departmentController.setOnOpenAppointments(showAppointments);
         departmentController.setOnOpenMedicalRecords(showMedicalRecords);
+        departmentController.setOnOpenPrescriptions(showPrescriptions);
 
         userController.setOnBackToDashboard(showDashboard);
         userController.setOnOpenDepartments(showDepartments);
@@ -130,6 +147,7 @@ public class Main extends Application {
         userController.setOnOpenPatients(showPatients);
         userController.setOnOpenAppointments(showAppointments);
         userController.setOnOpenMedicalRecords(showMedicalRecords);
+        userController.setOnOpenPrescriptions(showPrescriptions);
 
         doctorController.setOnBackToDashboard(showDashboard);
         doctorController.setOnOpenDepartments(showDepartments);
@@ -137,6 +155,7 @@ public class Main extends Application {
         doctorController.setOnOpenPatients(showPatients);
         doctorController.setOnOpenAppointments(showAppointments);
         doctorController.setOnOpenMedicalRecords(showMedicalRecords);
+        doctorController.setOnOpenPrescriptions(showPrescriptions);
 
         patientController.setOnBackToDashboard(showDashboard);
         patientController.setOnOpenDepartments(showDepartments);
@@ -144,6 +163,7 @@ public class Main extends Application {
         patientController.setOnOpenUserManagement(showUsers);
         patientController.setOnOpenAppointments(showAppointments);
         patientController.setOnOpenMedicalRecords(showMedicalRecords);
+        patientController.setOnOpenPrescriptions(showPrescriptions);
 
         appointmentController.setOnBackToDashboard(showDashboard);
         appointmentController.setOnOpenDepartments(showDepartments);
@@ -151,6 +171,7 @@ public class Main extends Application {
         appointmentController.setOnOpenPatients(showPatients);
         appointmentController.setOnOpenUserManagement(showUsers);
         appointmentController.setOnOpenMedicalRecords(showMedicalRecords);
+        appointmentController.setOnOpenPrescriptions(showPrescriptions);
 
         medicalRecordController.setOnBackToDashboard(showDashboard);
         medicalRecordController.setOnOpenDepartments(showDepartments);
@@ -158,6 +179,15 @@ public class Main extends Application {
         medicalRecordController.setOnOpenPatients(showPatients);
         medicalRecordController.setOnOpenAppointments(showAppointments);
         medicalRecordController.setOnOpenUserManagement(showUsers);
+        medicalRecordController.setOnOpenPrescriptions(showPrescriptions);
+
+        prescriptionController.setOnBackToDashboard(showDashboard);
+        prescriptionController.setOnOpenDepartments(showDepartments);
+        prescriptionController.setOnOpenDoctors(showDoctors);
+        prescriptionController.setOnOpenPatients(showPatients);
+        prescriptionController.setOnOpenUserManagement(showUsers);
+        prescriptionController.setOnOpenAppointments(showAppointments);
+        prescriptionController.setOnOpenMedicalRecords(showMedicalRecords);
 
         sceneManager.show(loginController.buildScene());
         primaryStage.show();

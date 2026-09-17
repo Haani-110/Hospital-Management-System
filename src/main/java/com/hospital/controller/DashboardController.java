@@ -38,6 +38,7 @@ public class DashboardController {
     private Runnable onOpenPatients;
     private Runnable onOpenAppointments;
     private Runnable onOpenMedicalRecords;
+    private Runnable onOpenPrescriptions;
 
     private User currentUser;
 
@@ -72,6 +73,10 @@ public class DashboardController {
 
     public void setOnOpenMedicalRecords(Runnable onOpenMedicalRecords) {
         this.onOpenMedicalRecords = onOpenMedicalRecords;
+    }
+
+    public void setOnOpenPrescriptions(Runnable onOpenPrescriptions) {
+        this.onOpenPrescriptions = onOpenPrescriptions;
     }
 
     public void setCurrentUser(User user) {
@@ -195,6 +200,22 @@ public class DashboardController {
             medicalRecordsItem = navLabel("Medical Records", false, true);
         }
 
+        // Prescriptions: available to every authenticated user (service enforces
+        // mutation permissions by role: Admin/Doctor create/edit; Receptionist view only).
+        Node prescriptionsItem;
+        if (isLoggedIn) {
+            Button btn = new Button("Prescriptions");
+            btn.getStyleClass().addAll("nav-item", "nav-button");
+            btn.setMaxWidth(Double.MAX_VALUE);
+            btn.setOnAction(e -> {
+                if (onOpenPrescriptions != null) onOpenPrescriptions.run();
+            });
+            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
+            prescriptionsItem = btn;
+        } else {
+            prescriptionsItem = navLabel("Prescriptions", false, true);
+        }
+
         sidebar.getChildren().addAll(
                 appTitle,
                 new Separator(),
@@ -205,8 +226,7 @@ public class DashboardController {
                 userManagementItem,
                 appointmentsItem,
                 medicalRecordsItem,
-                navLabel("Prescriptions", false, true),
-                navLabel("Billing", false, true)
+                prescriptionsItem
         );
 
         // --- Top bar ---

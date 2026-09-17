@@ -49,6 +49,7 @@ public class DepartmentController {
     private Runnable onOpenPatients;
     private Runnable onOpenAppointments;
     private Runnable onOpenMedicalRecords;
+    private Runnable onOpenPrescriptions;
 
     private TableView<Department> table;
     private TextField nameField;
@@ -89,6 +90,10 @@ public class DepartmentController {
 
     public void setOnOpenMedicalRecords(Runnable onOpenMedicalRecords) {
         this.onOpenMedicalRecords = onOpenMedicalRecords;
+    }
+
+    public void setOnOpenPrescriptions(Runnable onOpenPrescriptions) {
+        this.onOpenPrescriptions = onOpenPrescriptions;
     }
 
     public Scene buildScene() {
@@ -202,6 +207,14 @@ public class DepartmentController {
             if (onOpenMedicalRecords != null) onOpenMedicalRecords.run();
         });
 
+        Button prescBtn = new Button("Prescriptions");
+        prescBtn.getStyleClass().addAll("nav-item", "nav-button");
+        prescBtn.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(prescBtn, new Insets(2, 0, 2, 0));
+        prescBtn.setOnAction(e -> {
+            if (onOpenPrescriptions != null) onOpenPrescriptions.run();
+        });
+
         sidebar.getChildren().addAll(
                 appTitle,
                 new Separator(),
@@ -212,8 +225,7 @@ public class DepartmentController {
                 usersBtn,
                 apptBtn,
                 recordsBtn,
-                disabledSidebarItem("Prescriptions"),
-                disabledSidebarItem("Billing")
+                prescBtn
         );
         return sidebar;
     }

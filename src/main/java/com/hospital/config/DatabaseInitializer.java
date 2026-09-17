@@ -119,6 +119,37 @@ public class DatabaseInitializer {
                 );
                 """);
 
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS prescriptions (
+                    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                    medical_record_id INTEGER NOT NULL UNIQUE,
+                    patient_id        INTEGER NOT NULL,
+                    doctor_id         INTEGER NOT NULL,
+                    prescription_date TEXT    NOT NULL,
+                    notes             TEXT,
+                    created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
+                    FOREIGN KEY (patient_id)        REFERENCES patients(id),
+                    FOREIGN KEY (doctor_id)         REFERENCES doctors(id)
+                );
+                """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS prescription_items (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    prescription_id INTEGER NOT NULL,
+                    medicine_name   TEXT    NOT NULL,
+                    dosage          TEXT    NOT NULL,
+                    frequency       TEXT    NOT NULL,
+                    duration        TEXT    NOT NULL,
+                    instructions    TEXT,
+                    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (prescription_id) REFERENCES prescriptions(id) ON DELETE CASCADE
+                );
+                """);
+
             // Phase 2.2 migration: ensure is_active column exists on legacy users DBs.
             if (!columnExists(conn, "users", "is_active")) {
                 stmt.execute("ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;");
