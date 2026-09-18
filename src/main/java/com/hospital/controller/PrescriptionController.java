@@ -11,6 +11,10 @@ import com.hospital.service.MedicalRecordService;
 import com.hospital.service.PrescriptionService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -30,13 +34,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -110,9 +112,11 @@ public class PrescriptionController {
     public Scene buildScene() {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
-        root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
-        root.setCenter(buildContent());
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildTopBar());
+        workspace.setCenter(buildContent());
+        root.setLeft(UiStyles.sidebar(buildSidebar()));
+        root.setCenter(workspace);
         Scene scene = new Scene(root, 1350, 780);
         applyCss(scene);
         refreshTable();
@@ -122,22 +126,16 @@ public class PrescriptionController {
     }
 
     private Node buildTopBar() {
-        HBox bar = new HBox(10);
-        bar.setPadding(new Insets(15, 20, 15, 20));
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("topbar");
         Label title = new Label("Prescription Management");
         title.getStyleClass().add("page-title");
         Button back = new Button("← Back to Dashboard");
         back.getStyleClass().add("secondary-button");
         back.setOnAction(e -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
-        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
         String roleText = Session.getInstance().getRole() != null ? Session.getInstance().getRole().name() : "UNKNOWN";
         String userText = Session.getInstance().getUsername() != null ? Session.getInstance().getUsername() : "unknown";
         Label info = new Label("Logged in as: " + userText + " (" + roleText + ")");
         info.getStyleClass().add("user-info");
-        bar.getChildren().addAll(back, title, spacer, info);
-        return bar;
+        return UiStyles.header(title, info, back);
     }
 
     private Node buildSidebar() {
@@ -145,9 +143,9 @@ public class PrescriptionController {
         boolean isAdmin = role == Role.ADMIN;
         boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
 
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
         Label t = new Label("Hospital System"); t.getStyleClass().add("sidebar-title");
 
@@ -201,16 +199,12 @@ public class PrescriptionController {
     }
 
     private Node buildContent() {
-        HBox content = new HBox(20);
-        content.setPadding(new Insets(20));
-
         // ---------- Table pane ----------
         VBox tablePane = new VBox(10);
-        tablePane.setPadding(new Insets(10));
+        tablePane.setPadding(new Insets(16));
         tablePane.getStyleClass().add("card");
-        HBox.setHgrow(tablePane, Priority.ALWAYS);
 
-        HBox filterRow = new HBox(10);
+        FlowPane filterRow = new FlowPane(8, 8);
         searchField = new TextField();
         searchField.setPromptText("Search patient, code, doctor, medicine...");
         searchField.setPrefWidth(400);
@@ -251,6 +245,7 @@ public class PrescriptionController {
         doctorCol.setCellValueFactory(new PropertyValueFactory<>("doctorName"));
 
         TableColumn<Prescription, Integer> cntCol = new TableColumn<>("Medicines");
+        cntCol.getStyleClass().add("numeric-column");
         cntCol.setCellValueFactory(new PropertyValueFactory<>("itemCount"));
         cntCol.setPrefWidth(80);
 
@@ -259,7 +254,7 @@ public class PrescriptionController {
         table.getColumns().addAll(cols);
         table.getSelectionModel().selectedItemProperty().addListener((o, a, n) -> { if (n != null) populateForm(n); });
 
-        HBox actionRow = new HBox(10);
+        FlowPane actionRow = new FlowPane(8, 8);
         viewDetailsButton = new Button("View Details");
         viewDetailsButton.getStyleClass().add("secondary-button");
         viewDetailsButton.setDisable(true);
@@ -272,9 +267,7 @@ public class PrescriptionController {
 
         // ---------- Form pane ----------
         VBox formPane = new VBox(10);
-        formPane.setPadding(new Insets(10));
-        formPane.setMinWidth(520);
-        formPane.setMaxWidth(560);
+        formPane.setPadding(new Insets(18));
         formPane.getStyleClass().add("card");
 
         formTitle = new Label("New Prescription");
@@ -322,7 +315,8 @@ public class PrescriptionController {
         itemsData = FXCollections.observableArrayList();
         itemsTable = new TableView<>(itemsData);
         itemsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        itemsTable.setPrefHeight(200);
+        itemsTable.setPrefHeight(220);
+        itemsTable.setMinHeight(180);
         itemsTable.setEditable(true);
 
         TableColumn<ItemRow, String> medCol = new TableColumn<>("Medicine");
@@ -354,7 +348,7 @@ public class PrescriptionController {
         TableColumn<ItemRow, ?>[] itemCols = new TableColumn[] { medCol, doseCol, freqCol, durCol, instrCol };
         itemsTable.getColumns().addAll(itemCols);
 
-        HBox itemBtns = new HBox(10);
+        FlowPane itemBtns = new FlowPane(8, 8);
         addItemButton = new Button("+ Add Medicine");
         addItemButton.getStyleClass().add("secondary-button");
         addItemButton.setOnAction(e -> addEmptyItem());
@@ -376,16 +370,18 @@ public class PrescriptionController {
         clearButton = new Button("Clear / New");
         clearButton.getStyleClass().add("secondary-button");
 
-        HBox btns = new HBox(10, saveButton, clearButton);
+        FlowPane btns = new FlowPane(8, 8, saveButton, clearButton);
         btns.setAlignment(Pos.CENTER_LEFT);
         btns.setPadding(new Insets(6, 0, 0, 0));
 
         saveButton.setOnAction(e -> onSave());
         clearButton.setOnAction(e -> resetForm());
 
-        formPane.getChildren().addAll(formTitle, form, itemsLabel, itemsTable, itemBtns, messageLabel, btns);
-        content.getChildren().addAll(tablePane, formPane);
-        return content;
+        UiStyles.form(form);
+        formPane.getChildren().addAll(formTitle, UiStyles.hint("* Required fields"), form,
+                itemsLabel, UiStyles.hint("Double-click a cell to edit; press Enter to confirm."),
+                UiStyles.tableViewport(itemsTable), itemBtns, messageLabel, btns);
+        return UiStyles.workspace(tablePane, formPane);
     }
 
     private ListCell<MedicalRecord> recordCell() {
@@ -582,6 +578,7 @@ public class PrescriptionController {
             content.setMaxWidth(650);
             alert.getDialogPane().setContent(content);
             alert.getDialogPane().setMinWidth(700);
+            UiStyles.dialog(alert, false);
             alert.showAndWait();
         } catch (ValidationException | AuthorizationException | DatabaseException ex) {
             showError(ex.getMessage());
@@ -607,10 +604,7 @@ public class PrescriptionController {
     }
 
     private void applyCss(Scene scene) {
-        try {
-            var cssUrl = getClass().getResource("/com/hospital/css/styles.css");
-            if (cssUrl != null) scene.getStylesheets().add(cssUrl.toExternalForm());
-        } catch (Exception ignored) {}
+        UiStyles.apply(scene);
     }
 
     /** Editable row model for the medicines table in the form. */

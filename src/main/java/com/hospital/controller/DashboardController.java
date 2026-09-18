@@ -7,6 +7,8 @@ import com.hospital.service.AuthService;
 import com.hospital.service.ReportService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -16,8 +18,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 /**
@@ -73,9 +73,9 @@ public class DashboardController {
         root.getStyleClass().add("root");
 
         // --- Sidebar ---
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
 
         Label appTitle = new Label("Hospital System");
@@ -100,13 +100,8 @@ public class DashboardController {
                 userManagementItem, appointmentsItem, medicalRecordsItem, prescriptionsItem, billingItem, reportsItem);
 
         // --- Top bar ---
-        HBox topBar = new HBox(10);
-        topBar.setPadding(new Insets(15, 20, 15, 20));
-        topBar.setAlignment(Pos.CENTER_LEFT);
-        topBar.getStyleClass().add("topbar");
         Label pageTitle = new Label("Dashboard");
         pageTitle.getStyleClass().add("page-title");
-        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
         String roleText = currentUser != null && currentUser.getRole() != null ? currentUser.getRole().name() : "UNKNOWN";
         String userText = currentUser != null ? currentUser.getUsername() : "unknown";
         Label userInfo = new Label("Logged in as: " + userText + " (" + roleText + ")");
@@ -118,15 +113,17 @@ public class DashboardController {
             currentUser = null;
             if (onLogout != null) onLogout.run();
         });
-        topBar.getChildren().addAll(pageTitle, spacer, userInfo, logoutBtn);
+        VBox topBar = UiStyles.header(pageTitle, userInfo, logoutBtn);
 
         // --- Content ---
         VBox content = new VBox(20);
-        content.setPadding(new Insets(25));
+        content.setPadding(new Insets(22));
+        content.setMinWidth(0);
         content.setAlignment(Pos.TOP_LEFT);
 
         Label welcome = new Label("Welcome, " + userText + "!");
         welcome.getStyleClass().add("welcome");
+        welcome.setWrapText(true);
 
         DashboardStats stats;
         try {
@@ -140,7 +137,7 @@ public class DashboardController {
                 statCard("Total Patients", String.valueOf(stats.getTotalPatients())),
                 statCard("Active Doctors", String.valueOf(stats.getActiveDoctors())),
                 statCard("Today's Appointments", String.valueOf(stats.getTodaysAppointments())),
-                statCard("Scheduled Appointments", String.valueOf(stats.getPendingAppointments())),
+                statCard("Pending Appointments", String.valueOf(stats.getPendingAppointments())),
                 statCard("Completed Appointments", String.valueOf(stats.getCompletedAppointments())),
                 statCard("Unpaid Bills", String.valueOf(stats.getUnpaidBills())),
                 statCard("Partially Paid Bills", String.valueOf(stats.getPartiallyPaidBills())),
@@ -159,12 +156,17 @@ public class DashboardController {
         addQuickAction(quick, "User Management", isAdmin, onOpenUserManagement);
         addQuickAction(quick, "Departments", isAdmin, onOpenDepartments);
 
-        content.getChildren().addAll(welcome, cards, quickTitle, quick);
+        VBox quickPanel = new VBox(12, quickTitle,
+                UiStyles.hint("Open a module to continue your work."), quick);
+        quickPanel.getStyleClass().addAll("card", "quick-actions");
+        VBox introduction = new VBox(6, welcome,
+                UiStyles.hint("Patient care, appointments and daily operations."));
+        content.getChildren().addAll(introduction, cards, quickPanel);
 
         BorderPane inner = new BorderPane();
         inner.setTop(topBar);
-        inner.setCenter(content);
-        root.setLeft(sidebar);
+        inner.setCenter(UiStyles.scroll(content));
+        root.setLeft(UiStyles.sidebar(sidebar));
         root.setCenter(inner);
 
         Scene scene = new Scene(root, 1200, 750);
@@ -194,22 +196,25 @@ public class DashboardController {
 
     private VBox statCard(String title, String value) {
         VBox card = new VBox(6);
-        card.setPadding(new Insets(18, 20, 18, 20));
         card.setMinWidth(180);
-        card.setPrefWidth(200);
-        card.getStyleClass().add("card");
+        card.setPrefWidth(210);
+        card.getStyleClass().addAll("card", "stat-card");
         Label t = new Label(title);
-        t.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
+        t.getStyleClass().add("stat-label");
+        t.setMinHeight(32);
+        t.setWrapText(true);
         Label v = new Label(value);
-        v.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1f3a8a;");
+        v.getStyleClass().add("stat-value");
+        v.setWrapText(true);
+        v.setAccessibleText(title + ": " + value);
+        if ("0".equals(value) || "0.00".equals(value) || "0,00".equals(value)) {
+            v.getStyleClass().add("stat-zero");
+        }
         card.getChildren().addAll(t, v);
         return card;
     }
 
     private void applyCss(Scene scene) {
-        try {
-            String css = getClass().getResource("/com/hospital/css/styles.css").toExternalForm();
-            scene.getStylesheets().add(css);
-        } catch (Exception ignore) {}
+        UiStyles.apply(scene);
     }
 }

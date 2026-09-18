@@ -8,6 +8,8 @@ import com.hospital.model.Role;
 import com.hospital.service.DepartmentService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -24,8 +26,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -111,9 +113,11 @@ public class DepartmentController {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
 
-        root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
-        root.setCenter(buildContent());
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildTopBar());
+        workspace.setCenter(buildContent());
+        root.setLeft(UiStyles.sidebar(buildSidebar()));
+        root.setCenter(workspace);
 
         Scene scene = new Scene(root, 1050, 680);
         applyCss(scene);
@@ -126,11 +130,6 @@ public class DepartmentController {
     // ---------- Top bar ----------
 
     private Node buildTopBar() {
-        HBox topBar = new HBox(10);
-        topBar.setPadding(new Insets(15, 20, 15, 20));
-        topBar.setAlignment(Pos.CENTER_LEFT);
-        topBar.getStyleClass().add("topbar");
-
         Label pageTitle = new Label("Department Management");
         pageTitle.getStyleClass().add("page-title");
 
@@ -140,9 +139,6 @@ public class DepartmentController {
             if (onBackToDashboard != null) onBackToDashboard.run();
         });
 
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
         String roleText = Session.getInstance().getRole() != null
                 ? Session.getInstance().getRole().name() : "UNKNOWN";
         String userText = Session.getInstance().getUsername() != null
@@ -150,8 +146,7 @@ public class DepartmentController {
         Label userInfo = new Label("Logged in as: " + userText + " (" + roleText + ")");
         userInfo.getStyleClass().add("user-info");
 
-        topBar.getChildren().addAll(backBtn, pageTitle, spacer, userInfo);
-        return topBar;
+        return UiStyles.header(pageTitle, userInfo, backBtn);
     }
 
     // ---------- Sidebar (same as dashboard for consistency) ----------
@@ -161,9 +156,9 @@ public class DepartmentController {
         boolean isAdmin = role == Role.ADMIN;
         boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
 
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
 
         Label appTitle = new Label("Hospital System");
@@ -285,13 +280,9 @@ public class DepartmentController {
     // ---------- Main content ----------
 
     private Node buildContent() {
-        HBox content = new HBox(20);
-        content.setPadding(new Insets(20));
-
         VBox tablePane = new VBox(10);
-        tablePane.setPadding(new Insets(10));
+        tablePane.setPadding(new Insets(16));
         tablePane.getStyleClass().add("card");
-        HBox.setHgrow(tablePane, Priority.ALWAYS);
 
         Label tableTitle = new Label("Departments");
         tableTitle.getStyleClass().add("section-title");
@@ -326,9 +317,7 @@ public class DepartmentController {
         VBox.setVgrow(table, Priority.ALWAYS);
 
         VBox formPane = new VBox(10);
-        formPane.setPadding(new Insets(10));
-        formPane.setMinWidth(340);
-        formPane.setMaxWidth(380);
+        formPane.setPadding(new Insets(18));
         formPane.getStyleClass().add("card");
 
         formTitle = new Label("Add Department");
@@ -369,17 +358,17 @@ public class DepartmentController {
         clearButton = new Button("Clear / New");
         clearButton.getStyleClass().add("secondary-button");
 
-        HBox buttonRow = new HBox(10, saveButton, deleteButton, clearButton);
+        FlowPane buttonRow = new FlowPane(8, 8, saveButton, deleteButton, clearButton);
         buttonRow.setAlignment(Pos.CENTER_LEFT);
 
         saveButton.setOnAction(e -> onSave());
         deleteButton.setOnAction(e -> onDelete());
         clearButton.setOnAction(e -> resetForm());
 
-        formPane.getChildren().addAll(formTitle, form, messageLabel, buttonRow);
+        UiStyles.form(form);
+        formPane.getChildren().addAll(formTitle, UiStyles.hint("* Required fields"), form, messageLabel, buttonRow);
 
-        content.getChildren().addAll(tablePane, formPane);
-        return content;
+        return UiStyles.workspace(tablePane, formPane);
     }
 
     // ---------- Actions ----------
@@ -414,6 +403,7 @@ public class DepartmentController {
         confirm.setHeaderText("Delete department?");
         confirm.setContentText("Are you sure you want to delete the department \""
                 + editingDepartment.getName() + "\"?");
+        UiStyles.dialog(confirm, true);
         Optional<ButtonType> result = confirm.showAndWait();
         if (result.isEmpty() || result.get() != ButtonType.OK) {
             return;
@@ -505,12 +495,6 @@ public class DepartmentController {
     }
 
     private void applyCss(Scene scene) {
-        try {
-            var cssUrl = getClass().getResource("/com/hospital/css/styles.css");
-            if (cssUrl != null) {
-                scene.getStylesheets().add(cssUrl.toExternalForm());
-            }
-        } catch (Exception ignored) {
-        }
+        UiStyles.apply(scene);
     }
 }

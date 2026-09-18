@@ -10,6 +10,8 @@ import com.hospital.service.AppointmentService;
 import com.hospital.service.MedicalRecordService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -17,7 +19,6 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -31,8 +32,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -40,7 +41,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Medical Records screen (Phase 4).
@@ -108,9 +108,11 @@ public class MedicalRecordController {
     public Scene buildScene() {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
-        root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
-        root.setCenter(buildContent());
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildTopBar());
+        workspace.setCenter(buildContent());
+        root.setLeft(UiStyles.sidebar(buildSidebar()));
+        root.setCenter(workspace);
         Scene scene = new Scene(root, 1300, 760);
         applyCss(scene);
         refreshTable();
@@ -120,22 +122,16 @@ public class MedicalRecordController {
     }
 
     private Node buildTopBar() {
-        HBox bar = new HBox(10);
-        bar.setPadding(new Insets(15, 20, 15, 20));
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("topbar");
         Label title = new Label("Medical Records");
         title.getStyleClass().add("page-title");
         Button back = new Button("← Back to Dashboard");
         back.getStyleClass().add("secondary-button");
         back.setOnAction(e -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
-        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
         String roleText = Session.getInstance().getRole() != null ? Session.getInstance().getRole().name() : "UNKNOWN";
         String userText = Session.getInstance().getUsername() != null ? Session.getInstance().getUsername() : "unknown";
         Label info = new Label("Logged in as: " + userText + " (" + roleText + ")");
         info.getStyleClass().add("user-info");
-        bar.getChildren().addAll(back, title, spacer, info);
-        return bar;
+        return UiStyles.header(title, info, back);
     }
 
     private Node buildSidebar() {
@@ -143,9 +139,9 @@ public class MedicalRecordController {
         boolean isAdmin = role == Role.ADMIN;
         boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
 
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
         Label t = new Label("Hospital System"); t.getStyleClass().add("sidebar-title");
 
@@ -221,16 +217,12 @@ public class MedicalRecordController {
     }
 
     private Node buildContent() {
-        HBox content = new HBox(20);
-        content.setPadding(new Insets(20));
-
         // ---------- Table pane ----------
         VBox tablePane = new VBox(10);
-        tablePane.setPadding(new Insets(10));
+        tablePane.setPadding(new Insets(16));
         tablePane.getStyleClass().add("card");
-        HBox.setHgrow(tablePane, Priority.ALWAYS);
 
-        HBox filterRow = new HBox(10);
+        FlowPane filterRow = new FlowPane(8, 8);
         searchField = new TextField();
         searchField.setPromptText("Search patient, code, doctor, diagnosis, symptoms...");
         searchField.setPrefWidth(420);
@@ -294,7 +286,7 @@ public class MedicalRecordController {
         });
 
 
-        HBox tableBtnRow = new HBox(10);
+        FlowPane tableBtnRow = new FlowPane(8, 8);
         viewDetailsButton = new Button("View Details");
         viewDetailsButton.getStyleClass().add("secondary-button");
         viewDetailsButton.setDisable(true);
@@ -308,9 +300,7 @@ public class MedicalRecordController {
 
         // ---------- Form pane ----------
         VBox formPane = new VBox(10);
-        formPane.setPadding(new Insets(10));
-        formPane.setMinWidth(460);
-        formPane.setMaxWidth(500);
+        formPane.setPadding(new Insets(18));
         formPane.getStyleClass().add("card");
 
         formTitle = new Label("New Medical Record");
@@ -371,16 +361,16 @@ public class MedicalRecordController {
         clearButton = new Button("Clear / New");
         clearButton.getStyleClass().add("secondary-button");
 
-        HBox btns = new HBox(10, saveButton, clearButton);
+        FlowPane btns = new FlowPane(8, 8, saveButton, clearButton);
         btns.setAlignment(Pos.CENTER_LEFT);
         btns.setPadding(new Insets(6, 0, 0, 0));
 
         saveButton.setOnAction(e -> onSave());
         clearButton.setOnAction(e -> resetForm());
 
-        formPane.getChildren().addAll(formTitle, form, messageLabel, btns);
-        content.getChildren().addAll(tablePane, formPane);
-        return content;
+        UiStyles.form(form);
+        formPane.getChildren().addAll(formTitle, UiStyles.hint("* Required fields"), form, messageLabel, btns);
+        return UiStyles.workspace(tablePane, formPane);
     }
 
     private TableCell<MedicalRecord, LocalDate> dateCell() {
@@ -555,6 +545,7 @@ public class MedicalRecordController {
         content.setMaxWidth(600);
         alert.getDialogPane().setContent(content);
         alert.getDialogPane().setMinWidth(650);
+        UiStyles.dialog(alert, false);
         alert.showAndWait();
     }
 
@@ -579,9 +570,6 @@ public class MedicalRecordController {
     }
 
     private void applyCss(Scene scene) {
-        try {
-            var cssUrl = getClass().getResource("/com/hospital/css/styles.css");
-            if (cssUrl != null) scene.getStylesheets().add(cssUrl.toExternalForm());
-        } catch (Exception ignored) {}
+        UiStyles.apply(scene);
     }
 }

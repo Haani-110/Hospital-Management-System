@@ -12,6 +12,8 @@ import com.hospital.service.DoctorService;
 import com.hospital.service.PatientService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -34,8 +36,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -118,9 +120,11 @@ public class AppointmentController {
     public Scene buildScene() {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
-        root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
-        root.setCenter(buildContent());
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildTopBar());
+        workspace.setCenter(buildContent());
+        root.setLeft(UiStyles.sidebar(buildSidebar()));
+        root.setCenter(workspace);
         Scene scene = new Scene(root, 1300, 760);
         applyCss(scene);
         refreshTable();
@@ -130,22 +134,16 @@ public class AppointmentController {
     }
 
     private Node buildTopBar() {
-        HBox bar = new HBox(10);
-        bar.setPadding(new Insets(15, 20, 15, 20));
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("topbar");
         Label title = new Label("Appointment Management");
         title.getStyleClass().add("page-title");
         Button back = new Button("← Back to Dashboard");
         back.getStyleClass().add("secondary-button");
         back.setOnAction(e -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
-        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
         String roleText = Session.getInstance().getRole() != null ? Session.getInstance().getRole().name() : "UNKNOWN";
         String userText = Session.getInstance().getUsername() != null ? Session.getInstance().getUsername() : "unknown";
         Label info = new Label("Logged in as: " + userText + " (" + roleText + ")");
         info.getStyleClass().add("user-info");
-        bar.getChildren().addAll(back, title, spacer, info);
-        return bar;
+        return UiStyles.header(title, info, back);
     }
 
     private Node buildSidebar() {
@@ -153,9 +151,9 @@ public class AppointmentController {
         boolean isAdmin = role == Role.ADMIN;
         boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
 
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
         Label t = new Label("Hospital System"); t.getStyleClass().add("sidebar-title");
 
@@ -231,16 +229,12 @@ public class AppointmentController {
     }
 
     private Node buildContent() {
-        HBox content = new HBox(20);
-        content.setPadding(new Insets(20));
-
         // ---------- Table pane ----------
         VBox tablePane = new VBox(10);
-        tablePane.setPadding(new Insets(10));
+        tablePane.setPadding(new Insets(16));
         tablePane.getStyleClass().add("card");
-        HBox.setHgrow(tablePane, Priority.ALWAYS);
 
-        HBox filterRow = new HBox(10);
+        FlowPane filterRow = new FlowPane(8, 8);
         searchField = new TextField();
         searchField.setPromptText("Search patient, code, doctor, reason...");
         searchField.setPrefWidth(300);
@@ -324,10 +318,10 @@ public class AppointmentController {
         statusCol.setPrefWidth(100);
         statusCol.setCellFactory(col -> new TableCell<>() {
             @Override
-            protected void updateItem(String s, boolean empty) {
-                super.updateItem(s, empty);
-                if (empty || s == null) { setText(null); getStyleClass().remove("success"); return; }
-                setText(s);
+            protected void updateItem(String value, boolean empty) {
+                super.updateItem(value, empty);
+                setText(empty || value == null ? null : value);
+                UiStyles.statusCell(this, getText());
             }
         });
 
@@ -341,9 +335,7 @@ public class AppointmentController {
 
         // ---------- Form pane ----------
         VBox formPane = new VBox(10);
-        formPane.setPadding(new Insets(10));
-        formPane.setMinWidth(420);
-        formPane.setMaxWidth(460);
+        formPane.setPadding(new Insets(18));
         formPane.getStyleClass().add("card");
 
         formTitle = new Label("New Appointment");
@@ -376,7 +368,7 @@ public class AppointmentController {
                 super.updateItem(d, empty);
                 if (d != null && d.isBefore(LocalDate.now())) {
                     setDisable(true);
-                    setStyle("-fx-background-color: #f3f4f6;");
+                    // Disabled-day appearance is supplied by the shared stylesheet.
                 }
             }
         });
@@ -421,7 +413,7 @@ public class AppointmentController {
         clearButton = new Button("Clear / New");
         clearButton.getStyleClass().add("secondary-button");
 
-        HBox btns = new HBox(10, saveButton, cancelApptButton, completeButton, clearButton);
+        FlowPane btns = new FlowPane(8, 8, saveButton, cancelApptButton, completeButton, clearButton);
         btns.setAlignment(Pos.CENTER_LEFT);
         btns.setPadding(new Insets(6, 0, 0, 0));
 
@@ -430,9 +422,9 @@ public class AppointmentController {
         completeButton.setOnAction(e -> onComplete());
         clearButton.setOnAction(e -> resetForm());
 
-        formPane.getChildren().addAll(formTitle, form, messageLabel, btns);
-        content.getChildren().addAll(tablePane, formPane);
-        return content;
+        UiStyles.form(form);
+        formPane.getChildren().addAll(formTitle, UiStyles.hint("* Required fields"), form, messageLabel, btns);
+        return UiStyles.workspace(tablePane, formPane);
     }
 
     private ListCell<Patient> patientCell() {
@@ -657,6 +649,7 @@ public class AppointmentController {
         confirm.setContentText("Are you sure you want to cancel the appointment for " +
                 editingAppointment.getPatientName() + " with Dr. " + editingAppointment.getDoctorName() +
                 " on " + editingAppointment.getAppointmentDate() + " at " + editingAppointment.getAppointmentTime() + "?");
+        UiStyles.dialog(confirm, true);
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isEmpty() || res.get() != ButtonType.OK) return;
         try {
@@ -676,6 +669,7 @@ public class AppointmentController {
         confirm.setHeaderText("Mark this appointment as completed?");
         confirm.setContentText("Mark the appointment for " + editingAppointment.getPatientName() +
                 " with Dr. " + editingAppointment.getDoctorName() + " as completed?");
+        UiStyles.dialog(confirm, false);
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isEmpty() || res.get() != ButtonType.OK) return;
         try {
@@ -707,9 +701,6 @@ public class AppointmentController {
     }
 
     private void applyCss(Scene scene) {
-        try {
-            var cssUrl = getClass().getResource("/com/hospital/css/styles.css");
-            if (cssUrl != null) scene.getStylesheets().add(cssUrl.toExternalForm());
-        } catch (Exception ignored) {}
+        UiStyles.apply(scene);
     }
 }

@@ -8,6 +8,8 @@ import com.hospital.model.User;
 import com.hospital.service.Session;
 import com.hospital.service.UserService;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -28,7 +30,6 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -119,9 +120,11 @@ public class UserManagementController {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
 
-        root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
-        root.setCenter(buildContent());
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildTopBar());
+        workspace.setCenter(buildContent());
+        root.setLeft(UiStyles.sidebar(buildSidebar()));
+        root.setCenter(workspace);
 
         Scene scene = new Scene(root, 1100, 700);
         applyCss(scene);
@@ -133,11 +136,6 @@ public class UserManagementController {
     // ---------- Top bar ----------
 
     private Node buildTopBar() {
-        HBox topBar = new HBox(10);
-        topBar.setPadding(new Insets(15, 20, 15, 20));
-        topBar.setAlignment(Pos.CENTER_LEFT);
-        topBar.getStyleClass().add("topbar");
-
         Label pageTitle = new Label("User Management");
         pageTitle.getStyleClass().add("page-title");
 
@@ -147,9 +145,6 @@ public class UserManagementController {
             if (onBackToDashboard != null) onBackToDashboard.run();
         });
 
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
         String roleText = Session.getInstance().getRole() != null
                 ? Session.getInstance().getRole().name() : "UNKNOWN";
         String userText = Session.getInstance().getUsername() != null
@@ -157,8 +152,7 @@ public class UserManagementController {
         Label userInfo = new Label("Logged in as: " + userText + " (" + roleText + ")");
         userInfo.getStyleClass().add("user-info");
 
-        topBar.getChildren().addAll(backBtn, pageTitle, spacer, userInfo);
-        return topBar;
+        return UiStyles.header(pageTitle, userInfo, backBtn);
     }
 
     // ---------- Sidebar ----------
@@ -168,9 +162,9 @@ public class UserManagementController {
         boolean isAdmin = role == Role.ADMIN;
         boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
 
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
 
         Label appTitle = new Label("Hospital System");
@@ -292,13 +286,9 @@ public class UserManagementController {
     // ---------- Content ----------
 
     private Node buildContent() {
-        HBox content = new HBox(20);
-        content.setPadding(new Insets(20));
-
         VBox tablePane = new VBox(10);
-        tablePane.setPadding(new Insets(10));
+        tablePane.setPadding(new Insets(16));
         tablePane.getStyleClass().add("card");
-        HBox.setHgrow(tablePane, Priority.ALWAYS);
 
         Label tableTitle = new Label("Users");
         tableTitle.getStyleClass().add("section-title");
@@ -323,13 +313,10 @@ public class UserManagementController {
         activeCol.setCellValueFactory(new PropertyValueFactory<>("active"));
         activeCol.setCellFactory(col -> new TableCell<>() {
             @Override
-            protected void updateItem(Boolean active, boolean empty) {
-                super.updateItem(active, empty);
-                if (empty || active == null) {
-                    setText(null);
-                } else {
-                    setText(active ? "Active" : "Inactive");
-                }
+            protected void updateItem(Boolean value, boolean empty) {
+                super.updateItem(value, empty);
+                setText(empty || value == null ? null : value ? "Active" : "Inactive");
+                UiStyles.statusCell(this, getText());
             }
         });
 
@@ -356,9 +343,7 @@ public class UserManagementController {
         VBox.setVgrow(table, Priority.ALWAYS);
 
         VBox formPane = new VBox(10);
-        formPane.setPadding(new Insets(10));
-        formPane.setMinWidth(360);
-        formPane.setMaxWidth(400);
+        formPane.setPadding(new Insets(18));
         formPane.getStyleClass().add("card");
 
         formTitle = new Label("Create User");
@@ -427,10 +412,10 @@ public class UserManagementController {
         toggleActiveButton.setOnAction(e -> onToggleActive());
         clearButton.setOnAction(e -> resetForm());
 
-        formPane.getChildren().addAll(formTitle, form, messageLabel, buttonRow);
+        UiStyles.form(form);
+        formPane.getChildren().addAll(formTitle, UiStyles.hint("* Required fields"), form, messageLabel, buttonRow);
 
-        content.getChildren().addAll(tablePane, formPane);
-        return content;
+        return UiStyles.workspace(tablePane, formPane);
     }
 
     // ---------- Actions ----------
@@ -496,6 +481,7 @@ public class UserManagementController {
         confirm.setContentText(willBeActive
                 ? "Are you sure you want to activate the user \"" + editingUser.getUsername() + "\"?"
                 : "Are you sure you want to deactivate the user \"" + editingUser.getUsername() + "\"?");
+        UiStyles.dialog(confirm, !willBeActive);
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isEmpty() || res.get() != ButtonType.OK) return;
 
@@ -598,6 +584,8 @@ public class UserManagementController {
         np.textProperty().addListener((o, a, b) -> toggleOk(dlg, np, cp, ButtonType.OK));
         cp.textProperty().addListener((o, a, b) -> toggleOk(dlg, np, cp, ButtonType.OK));
 
+        UiStyles.dialog(dlg, false);
+
         Optional<ButtonType> pressed = dlg.showAndWait();
         if (pressed.isEmpty() || pressed.get() != ButtonType.OK) return null;
 
@@ -643,13 +631,7 @@ public class UserManagementController {
     }
 
     private void applyCss(Scene scene) {
-        try {
-            var cssUrl = getClass().getResource("/com/hospital/css/styles.css");
-            if (cssUrl != null) {
-                scene.getStylesheets().add(cssUrl.toExternalForm());
-            }
-        } catch (Exception ignored) {
-        }
+        UiStyles.apply(scene);
     }
 
     private record DialogResult(String newPassword, String confirm) { }
