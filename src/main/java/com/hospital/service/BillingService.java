@@ -263,25 +263,14 @@ public class BillingService {
     private void requireCanChangeStatus(String current, String target) {
         requireLoggedIn();
         Role role = Session.getInstance().getRole();
+
+        // A bill that has already been cancelled is immutable for everyone.
         if (Bill.STATUS_CANCELLED.equals(current)) {
             throw new ValidationException("Cancelled bills cannot have their status changed.");
         }
-        boolean allowed;
-        switch (target) {
-            case Bill.STATUS_PARTIALLY_PAID ->
-                // Admin and receptionist can record partial payment.
-                    allowed = role == Role.ADMIN || role == Role.RECEPTIONIST;
-            case Bill.STATUS_PAID, Bill.STATUS_CANCELLED ->
-                // Only admin may finalize payment or cancel a bill.
-                    allowed = role == Role.ADMIN;
-            case Bill.STATUS_UNPAID ->
-                allowed = false; // do not allow going back to UNPAID
-            default -> allowed = false;
-        }
-        if (!allowed) {
-            throw new AuthorizationException("You are not allowed to change bill status to " + target + ".");
-        }
-        // Lifecycle check.
+
+        // First validate whether the transition is one the model allows at all.
+        // If not, that's a business-rule (validation) error regardless of role.
         boolean transitionOk = switch (current) {
             case Bill.STATUS_UNPAID ->
                     target.equals(Bill.STATUS_PARTIALLY_PAID)
@@ -296,6 +285,21 @@ public class BillingService {
         if (!transitionOk) {
             throw new ValidationException(
                     "Cannot transition bill status from " + current + " to " + target + ".");
+        }
+
+        // Then enforce role permissions for the target status.
+        boolean allowed;
+        switch (target) {
+            case Bill.STATUS_PARTIALLY_PAID ->
+                // Admin and receptionist can record partial payment.
+                    allowed = role == Role.ADMIN || role == Role.RECEPTIONIST;
+            case Bill.STATUS_PAID, Bill.STATUS_CANCELLED ->
+                // Only admin may finalize payment or cancel a bill.
+                    allowed = role == Role.ADMIN;
+            default -> allowed = false;
+        }
+        if (!allowed) {
+            throw new AuthorizationException("You are not allowed to change bill status to " + target + ".");
         }
     }
 
