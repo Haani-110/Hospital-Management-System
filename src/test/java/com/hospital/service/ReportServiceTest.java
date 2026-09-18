@@ -284,7 +284,7 @@ class ReportServiceTest {
         com.hospital.dao.MedicalRecordDao mrDao = new com.hospital.dao.MedicalRecordDaoImpl(db);
         MedicalRecordService mrService = new MedicalRecordService(mrDao, new AppointmentDaoImpl(db), new DoctorDaoImpl(db));
         login(Role.ADMIN);
-        mrService.createRecord(a.getId(), "Flu", null, null, "Rest and fluids", null);
+        mrService.createRecord(a.getId(), "Flu", null, null, "Rest and fluids", LocalDate.now().toString());
 
         var all = reportService.medicalRecordReport(null, null, null);
         assertEquals(1, all.getRows().size());
@@ -305,7 +305,7 @@ class ReportServiceTest {
         com.hospital.dao.MedicalRecordDao mrDao = new com.hospital.dao.MedicalRecordDaoImpl(db);
         MedicalRecordService mrService = new MedicalRecordService(mrDao, new AppointmentDaoImpl(db), new DoctorDaoImpl(db));
         login(Role.ADMIN);
-        MedicalRecord mr = mrService.createRecord(a.getId(), "Cold", null, null, "Rest", null);
+        MedicalRecord mr = mrService.createRecord(a.getId(), "Cold", null, null, "Rest", LocalDate.now().toString());
 
         com.hospital.dao.PrescriptionDao prDao = new com.hospital.dao.PrescriptionDaoImpl(db);
         com.hospital.dao.PrescriptionItemDao piDao = new com.hospital.dao.PrescriptionItemDaoImpl(db);
