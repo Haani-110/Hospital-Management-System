@@ -107,7 +107,7 @@ public class DoctorController {
         workspace.setCenter(buildContent());
         root.setLeft(UiStyles.sidebar(buildSidebar()));
         root.setCenter(workspace);
-        Scene scene = new Scene(root, 1200, 720);
+        Scene scene = new Scene(root);
         applyCss(scene);
         refreshTable();
         resetForm();

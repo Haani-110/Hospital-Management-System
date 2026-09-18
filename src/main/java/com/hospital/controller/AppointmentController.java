@@ -125,7 +125,7 @@ public class AppointmentController {
         workspace.setCenter(buildContent());
         root.setLeft(UiStyles.sidebar(buildSidebar()));
         root.setCenter(workspace);
-        Scene scene = new Scene(root, 1300, 760);
+        Scene scene = new Scene(root);
         applyCss(scene);
         refreshTable();
         populateChoices();

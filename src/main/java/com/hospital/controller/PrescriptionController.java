@@ -117,7 +117,7 @@ public class PrescriptionController {
         workspace.setCenter(buildContent());
         root.setLeft(UiStyles.sidebar(buildSidebar()));
         root.setCenter(workspace);
-        Scene scene = new Scene(root, 1350, 780);
+        Scene scene = new Scene(root);
         applyCss(scene);
         refreshTable();
         populateEligibleRecords();

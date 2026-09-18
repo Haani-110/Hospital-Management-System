@@ -21,6 +21,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -32,8 +33,10 @@ import javafx.scene.shape.Rectangle;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TreeMap;
 
 /**
@@ -45,6 +48,11 @@ public final class UiStyles {
 
     private static final Object STATUS_BADGE = new Object();
     private static final Object EMPTY_STATE = new Object();
+    private static final Object RAIL_STATE = new Object();
+
+    private static final class SidebarState {
+        private final Map<String, StackPane> slots = new LinkedHashMap<>();
+    }
 
     private UiStyles() { }
 
@@ -64,6 +72,7 @@ public final class UiStyles {
                 button.getStyleClass().add("sidebar-logout");
             }
         }
+        UiMotion.visit(scene.getRoot(), UiStyles::adaptFlow);
         UiMotion.install(scene.getRoot());
     }
 
@@ -95,6 +104,7 @@ public final class UiStyles {
         brand.getStyleClass().add("sidebar-brand");
 
         List<Node> links = original.stream().filter(n -> n.getStyleClass().contains("nav-item")).toList();
+        SidebarState state = new SidebarState();
         VBox clinical = new VBox(4);
         VBox operations = new VBox(4);
         VBox administration = new VBox(4);
@@ -108,11 +118,16 @@ public final class UiStyles {
                 active.setGraphicTextGap(10);
                 if (link.isVisible()) UiMotion.indicator(indicator);
             }
+            StackPane slot = new StackPane();
+            slot.setMinWidth(0);
+            slot.getStyleClass().add("nav-slot");
+            setNavigationNode(slot, link);
+            state.slots.put("Doctor Management".equals(name) ? "Doctors" : name, slot);
             switch (name) {
-                case "Departments", "User Management" -> administration.getChildren().add(link);
-                case "Billing", "Reports" -> operations.getChildren().add(link);
-                case "Dashboard" -> navigation.getChildren().add(link);
-                default -> clinical.getChildren().add(link);
+                case "Departments", "User Management" -> administration.getChildren().add(slot);
+                case "Billing", "Reports" -> operations.getChildren().add(slot);
+                case "Dashboard" -> navigation.getChildren().add(slot);
+                default -> clinical.getChildren().add(slot);
             }
         }
         navigation.getChildren().addAll(navGroup("CLINICAL WORKSPACE", clinical),
@@ -129,7 +144,51 @@ public final class UiStyles {
         VBox rail = new VBox(brand, viewport, profile);
         rail.setMinWidth(236); rail.setPrefWidth(236); rail.setMaxWidth(236);
         rail.getStyleClass().add("sidebar-rail");
+        rail.getProperties().put(RAIL_STATE, state);
         return rail;
+    }
+
+    private static void setNavigationNode(StackPane slot, Node node) {
+        slot.visibleProperty().unbind();
+        slot.managedProperty().unbind();
+        slot.getChildren().setAll(node);
+        slot.visibleProperty().bind(node.visibleProperty());
+        slot.managedProperty().bind(node.managedProperty());
+    }
+
+    /** Keep the mounted rail and its slots. Only active/inactive nodes change.
+     * Each replacement retains the incoming controller's original callback.
+     * Visibility is copied from the existing role-aware view, never recomputed.
+     */
+    public static void updateSidebar(Node mounted, Node incoming) {
+        SidebarState current = (SidebarState) mounted.getProperties().get(RAIL_STATE);
+        SidebarState next = (SidebarState) incoming.getProperties().get(RAIL_STATE);
+        for (var entry : current.slots.entrySet()) {
+            StackPane slot = entry.getValue();
+            StackPane incomingSlot = next.slots.get(entry.getKey());
+            Node previous = slot.getChildren().get(0);
+            Node candidate = incomingSlot.getChildren().get(0);
+            boolean active = candidate.getStyleClass().contains("nav-item-active");
+            if (active != previous.getStyleClass().contains("nav-item-active")) {
+                UiMotion.cancelTree(previous);
+                incomingSlot.visibleProperty().unbind();
+                incomingSlot.managedProperty().unbind();
+                incomingSlot.getChildren().clear();
+                setNavigationNode(slot, candidate);
+            } else {
+                previous.setVisible(candidate.isVisible());
+                previous.setManaged(candidate.isManaged());
+                if (active && previous instanceof Labeled label && label.getGraphic() != null) {
+                    UiMotion.indicator(label.getGraphic());
+                }
+            }
+        }
+        Node oldUser = mounted.lookup(".user-info");
+        Node newUser = incoming.lookup(".user-info");
+        if (oldUser instanceof Label oldLabel && newUser instanceof Label newLabel) {
+            oldLabel.setText(newLabel.getText());
+        }
+        UiMotion.cancelTree(incoming);
     }
 
     /** Group headings follow existing node visibility; no role decisions here. */
@@ -216,6 +275,9 @@ public final class UiStyles {
         ScrollPane list = scroll(tablePane);
         list.setFitToHeight(true);
         ScrollPane editor = scroll(formPane);
+        // Keep the split divider from squeezing either pane to an unusable sliver.
+        list.setMinWidth(340);
+        editor.setMinWidth(300);
         SplitPane split = new SplitPane(list, editor);
         split.getStyleClass().add("workspace");
         split.setMinSize(0, 0);
@@ -402,7 +464,7 @@ public final class UiStyles {
             }
         }
         UiMotion.install(pane);
-        UiMotion.enter(pane, 0, true);
+        UiMotion.dialog(alert);
     }
 
     private static void formSections(GridPane form) {
@@ -435,6 +497,30 @@ public final class UiStyles {
             label.getStyleClass().add("form-section");
             label.setMaxWidth(Double.MAX_VALUE);
             form.add(label, 0, section.getKey() + offset++);
+        }
+    }
+
+    /** Preferred toolbar widths are upper bounds, not a reason to overflow a pane. */
+    private static void adaptFlow(Node node) {
+        if (!(node instanceof FlowPane flow)) return;
+        flow.setMinWidth(0);
+        for (Node child : flow.getChildren()) {
+            if (!(child instanceof Region region)) continue;
+            if (child instanceof Button button) {
+                button.setWrapText(true);
+                button.setMinWidth(0);
+                button.maxWidthProperty().bind(Bindings.createDoubleBinding(
+                        () -> flow.getWidth() <= 0 ? Double.MAX_VALUE : Math.max(1,
+                                flow.getWidth() - flow.getInsets().getLeft() - flow.getInsets().getRight()),
+                        flow.widthProperty(), flow.insetsProperty()));
+            } else if (region.getPrefWidth() > 0 && !region.prefWidthProperty().isBound()) {
+                double preferred = region.getPrefWidth();
+                region.setMinWidth(0);
+                region.prefWidthProperty().bind(Bindings.createDoubleBinding(
+                        () -> flow.getWidth() <= 0 ? preferred : Math.min(preferred,
+                                Math.max(1, flow.getWidth() - flow.getInsets().getLeft() - flow.getInsets().getRight())),
+                        flow.widthProperty(), flow.insetsProperty()));
+            }
         }
     }
 

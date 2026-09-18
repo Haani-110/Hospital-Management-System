@@ -126,7 +126,7 @@ public class UserManagementController {
         root.setLeft(UiStyles.sidebar(buildSidebar()));
         root.setCenter(workspace);
 
-        Scene scene = new Scene(root, 1100, 700);
+        Scene scene = new Scene(root);
         applyCss(scene);
         refreshTable();
         resetForm();

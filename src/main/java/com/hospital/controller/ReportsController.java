@@ -94,7 +94,7 @@ public class ReportsController {
         workspace.setCenter(buildContent());
         root.setLeft(UiStyles.sidebar(buildSidebar()));
         root.setCenter(workspace);
-        Scene scene = new Scene(root, 1400, 800);
+        Scene scene = new Scene(root);
         applyCss(scene);
         return scene;
     }

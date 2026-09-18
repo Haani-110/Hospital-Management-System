@@ -127,7 +127,8 @@ public class LoginController {
 
         ScrollPane viewport = UiStyles.scroll(root);
         viewport.setFitToHeight(true);
-        Scene scene = new Scene(viewport, 1100, 760);
+        viewport.getStyleClass().add("login-screen");
+        Scene scene = new Scene(viewport);
         UiStyles.apply(scene);
         return scene;
     }

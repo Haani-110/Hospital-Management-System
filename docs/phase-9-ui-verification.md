@@ -174,3 +174,158 @@ with `mvn: command not found`. The 339-test target and JavaFX rendering are stil
 - [ ] Check long names, long detail text, zero/large metric values, empty lists and OS display scaling.
 - [ ] Repeat with reduced motion enabled; nothing should remain transparent or scaled down.
 - [ ] Inspect JavaFX console output for CSS warnings; confirm no continued motion while idle.
+
+## Third pass — stable shell and visibly wired motion
+
+This section supersedes the second-pass sizing and motion descriptions above.
+Baseline for this pass: `5f2780a` (`UI: add premium interactions and visual polish`).
+
+### Diagnosis and shell ownership
+
+The old `SceneManager.show()` installed a different Scene on the Stage for every
+route. Controllers supplied conflicting dimensions: Dashboard 1200×750,
+Departments 1050×680, Patients 1280×760, Appointments 1300×760, Billing/Reports
+1400×800, and others. Scene replacement therefore reintroduced each screen's
+preferred window size. Fixed screen dimensions were not a responsive-shell policy.
+
+The old motion hook depended on window-show events, not module navigation. There
+was no central content transition; entrance movement was only 6 px and dashboard
+stagger delays were capped at 50 ms. Registering effects was not enough to ensure
+they played visibly after the destination had been mounted and laid out.
+
+Changes:
+
+- `SceneManager` now installs **one Scene once**, with a persistent BorderPane
+  shell. Temporary controller Scenes only transport their view roots; they never
+  reach `Stage.setScene`. All eleven controller Scene constructors are unsized.
+- Login uses 1100×760, minimum 900×640. Entry into the authenticated portal uses
+  **1280×800**, minimum **1000×700**. Entry sizes/minima are clamped to the current
+  monitor's visual bounds. Main no longer supplies a conflicting minimum.
+- Only login/portal boundaries invoke sizing. Ordinary module navigation does
+  not set Stage size, position, maximized/full-screen state or call `sizeToScene`.
+  Manual resizing and maximize/restore are left to the existing Stage.
+- The 236 px rail, brand, navigation slots, scroll position and session/footer stay
+  mounted. Only active/inactive navigation nodes are exchanged where necessary,
+  using original controller nodes and callbacks. The active Doctors label maps
+  to the existing Doctors slot despite its original “Doctor Management” text.
+- Slot visibility/management follows the original role-filtered nodes. Shared
+  helpers do not consult Session/Role or introduce a second permission system.
+  Dashboard's original Logout button/handler remains mounted throughout the
+  portal; logout discards the entire rail before a new user's login.
+- Incoming page roots lose only their rail. All other regions—including headers
+  and any footer—are retained in the shell's main content area.
+
+### Responsive content review
+
+All major views were inspected at source level. These are **conceptual layout
+checks, not screenshots or measured JavaFX runtime results**. The table below
+allows approximately 16 px for window decoration; actual OS metrics vary.
+
+| Outer size | Approx. content width after rail | CRUD table/form layout | Dashboard featured/supporting columns | Report filter sections |
+|---|---:|---|---|---|
+| 1000×700 minimum | 748 px | Stacked, independently scrollable | 2 / 3 | 1 column |
+| 1280×800 baseline | 1028 px | Side by side | 2 / 3 | 2 columns |
+| 1440×900 | 1188 px | Side by side | 2 / 3 | 2 columns |
+| 1920×1080 | 1668 px | Side by side | 2 / 3 | 2 columns |
+
+- Patients, Doctors, Appointments, Medical Records, Prescriptions, Billing,
+  Departments and Users all use the shared growing/scrollable workspace. Its
+  width breakpoint is 1000 px of **content**, not outer-window width. The split
+  divider now keeps at least 340 px for the list and 300 px for the editor.
+- `UiStyles.apply()` now actually adapts every application FlowPane. Fixed
+  preferred search/filter widths become upper bounds constrained to their row;
+  action buttons can wrap and are capped to available row width. This also
+  reaches Dashboard quick actions and Reports' date/filter/action rows.
+- Forms retain growing single-column fields, wrapping text areas and vertical
+  scrolling. Tables retain readable column minima with local horizontal
+  scrolling, rather than widening the window or pushing filters offscreen.
+- Dashboard retains its featured/supporting metric grids and scrollable content.
+  Reports retains its distinct filter groups and results/summary area, with
+  wrapping toolbars and vertically scrollable content. Login retains its capped,
+  centered card in a fit-to-width/height viewport.
+- Header identity columns can shrink/wrap while the existing action remains
+  accessible. The sidebar's appropriate fixed width is not applied to content.
+
+### Motion actually connected to screens
+
+Entrance requests are prepared before mounting and start on a **one-shot
+post-layout pulse in the live Scene**. Pending pulses and owned animations are
+cancelled on outgoing views, rapid navigation, dialog close and window hide.
+The Stage and entire sidebar are never faded, scaled or translated.
+
+| Surface / interaction | Wired behavior |
+|---|---|
+| All ten portal modules | Main content opacity 0→1 and Y 12→0, 240 ms, EASE_OUT |
+| Dashboard header | Additional 240 ms fade/10 px entrance |
+| All eight dashboard metrics | 240 ms fade/10 px entrance; sequential 0, 40, 80, 120, 160, 200, 240, 280 ms delays; final card finishes at about 520 ms |
+| Metric hover | 170 ms shadow elevation and scale 1→1.015, without changing layout bounds |
+| Sidebar hover | 150 ms background-tone feedback and small graphic-accent opacity/scale; no whole-item translation or scale |
+| Active indicator | 200 ms fade and Y-scale 0.25→1 on the teal indicator; active background/text emphasis retained |
+| Buttons / quick actions | 150 ms tone/elevation feedback, pressed scale 0.975, disabled desaturation/lightening and normal disabled cursor |
+| Text/choice/date fields | 150 ms border-color interpolation and gentle focus glow; hover/blur/disabled return states, no field movement |
+| Application-owned dialogs | 200 ms fade and scale 0.97→1; showing-property listener does not overwrite dialog lifecycle/result handlers |
+| Login card / validation messages | Login card 240 ms fade/10 px entrance; visible error/success labels retain 180 ms fade |
+
+Animated field borders are bound to their interpolated color so CSS focus/hover
+recalculation cannot snap them immediately to the destination color. Fields keep
+the same one-pixel border geometry throughout the animation.
+
+Transition coverage: **Dashboard, Patients, Doctors, Appointments, Medical
+Records, Prescriptions, Billing, Reports, Departments, User Management**.
+All 12 existing Alert creation sites still call `UiStyles.dialog`, which now
+connects to the dialog-show motion hook. Original button types, action handlers,
+result handling, native close, default/cancel and keyboard behavior are unchanged.
+Table hover/selection and exact-text status chips remain restrained CSS/cell
+presentation; no row-factory replacement, row animation loops or status pulses.
+
+`-Dhospital.ui.reduceMotion=true` skips entrances and applies feedback end states
+immediately. There are no new dependencies, fake loaders or background tasks.
+
+### Verification performed in Arena
+
+- `mvn clean test`: **could not run**, exit 127, `mvn: command not found`.
+- `mvn javafx:run`: **could not run**, exit 127, `mvn: command not found`.
+- Java and Maven are absent; no installation was attempted in this pass.
+- **No compilation, 339-test result, JavaFX CSS/rendering or manual UI execution
+  is claimed.** Local runtime confirmation remains required.
+- Source comparison against `5f2780a`: **187 controller methods outside
+  `buildScene` unchanged**; all original action/edit/listener bodies, controller
+  fields, permission/state statements, sidebar definitions, dashboard shortcuts
+  and eight statistic getters preserved. Main changed only sizing ownership.
+- Source-evaluated role matrix: **30 screen/role combinations** retain exactly
+  Admin's ten modules, Doctor's six (no Doctors/Billing/Departments/Users), and
+  Receptionist's eight (no Departments/Users). Hidden nodes remain unmanaged.
+- A separate source/algorithm check verified compatible persistent-slot keys and
+  active/visibility updates across the requested navigation sequence and all
+  module/role combinations. This is not a JavaFX binding/rendering test.
+- Source contracts checked: one installed Scene; no controller dimensions or
+  Stage setters; size calls only at login/portal entry; full incoming content
+  preservation; post-layout motion hookup; finite durations; all dialog hooks;
+  shared responsive adaptation; no action-handler replacement or row animation.
+- Balanced source delimiters, CSS declaration syntax and `git diff --check`
+  passed. Backend, schema, model, DAO, services, dependency definitions and
+  existing test files were not changed.
+
+### Local acceptance checklist — still pending
+
+- [ ] Run `mvn clean test`: target 339 tests, zero failures/errors.
+- [ ] Launch normally (without reduced motion) and inspect all ten modules.
+- [ ] At 1280×800, 1440×900 and 1920×1080, follow Dashboard → Patients →
+      Appointments → Billing → Reports → Dashboard; record unchanged Stage bounds.
+- [ ] Manually resize, maximize, navigate, restore, and navigate again. Keep the
+      chosen size, stable rail/scroll position and correctly highlighted route.
+- [ ] Repeat rapid navigation before 240 ms and before the dashboard's last card
+      enters. No stale pulses, invisible content, stuck scale or flicker.
+- [ ] Verify header/card entrances, ordered 40 ms stagger, card hover, navigation
+      hover/indicator, button hover/press/disabled, and form focus/blur feedback.
+- [ ] Resize across the workspace breakpoint; drag the divider; inspect wrapped
+      filters/buttons, readable table scrolling and vertically accessible forms.
+- [ ] Verify all three roles and role-aware quick actions. Logout from a module,
+      then log in as a different role; no stale user label or navigation access.
+- [ ] Open each details/confirmation/error dialog, including billing, patient,
+      medical-record and prescription details. Check fade/scale, Escape, Enter,
+      Cancel, native close and unchanged confirmation results.
+- [ ] Recheck appointment conflicts, record/prescription eligibility, bill totals
+      and statuses, report filtering, Admin user/department operations and validation.
+- [ ] Repeat with reduced motion; inspect long text, empty data, display scaling,
+      table selection/status chips, and JavaFX console warnings.

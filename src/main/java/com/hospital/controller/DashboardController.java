@@ -116,6 +116,7 @@ public class DashboardController {
             if (onLogout != null) onLogout.run();
         });
         VBox topBar = UiStyles.header(pageTitle, userInfo, logoutBtn);
+        UiMotion.enter(topBar, 0, false);
 
         // --- Content ---
         VBox content = new VBox(20);
@@ -148,9 +149,9 @@ public class DashboardController {
                 statCard("Unpaid Bills", String.valueOf(stats.getUnpaidBills())),
                 statCard("Partially Paid Bills", String.valueOf(stats.getPartiallyPaidBills())));
         UiMotion.enter(today, 0, false);
-        UiMotion.enter(revenue, 25, false);
+        UiMotion.enter(revenue, 40, false);
         for (int i = 0; i < cards.getChildren().size(); i++) {
-            UiMotion.enter(cards.getChildren().get(i), i * 10, false);
+            UiMotion.enter(cards.getChildren().get(i), (i + 2) * 40, false);
         }
         Label overview = new Label("Care & operations");
         overview.getStyleClass().add("section-title");
@@ -180,7 +181,7 @@ public class DashboardController {
         root.setLeft(UiStyles.sidebar(sidebar));
         root.setCenter(inner);
 
-        Scene scene = new Scene(root, 1200, 750);
+        Scene scene = new Scene(root);
         applyCss(scene);
         return scene;
     }

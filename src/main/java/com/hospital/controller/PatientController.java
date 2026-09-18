@@ -108,7 +108,7 @@ public class PatientController {
         workspace.setCenter(buildContent());
         root.setLeft(UiStyles.sidebar(buildSidebar()));
         root.setCenter(workspace);
-        Scene scene = new Scene(root, 1280, 760);
+        Scene scene = new Scene(root);
         applyCss(scene);
         refreshTable();
         resetForm();
