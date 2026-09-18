@@ -70,6 +70,7 @@ public class AppointmentController {
     private Runnable onOpenMedicalRecords;
     private Runnable onOpenPrescriptions;
     private Runnable onOpenBilling;
+    private Runnable onOpenReports;
 
     private TableView<Appointment> table;
     private TextField searchField;
@@ -112,6 +113,7 @@ public class AppointmentController {
     public void setOnOpenMedicalRecords(Runnable r) { this.onOpenMedicalRecords = r; }
     public void setOnOpenPrescriptions(Runnable r) { this.onOpenPrescriptions = r; }
     public void setOnOpenBilling(Runnable r) { this.onOpenBilling = r; }
+    public void setOnOpenReports(Runnable r) { this.onOpenReports = r; }
 
     public Scene buildScene() {
         BorderPane root = new BorderPane();
@@ -265,6 +267,15 @@ public class AppointmentController {
                 setText(empty || d == null ? null : d.format(DATE_FMT));
             }
         });
+
+        Button reportsBtn = new Button("Reports");
+        reportsBtn.getStyleClass().addAll("nav-item", "nav-button");
+        reportsBtn.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(reportsBtn, new Insets(2, 0, 2, 0));
+        reportsBtn.setOnAction(e -> {
+            if (onOpenReports != null) onOpenReports.run();
+        });
+
 
         TableColumn<Appointment, LocalTime> timeCol = new TableColumn<>("Time");
         timeCol.setCellValueFactory(new PropertyValueFactory<>("appointmentTime"));

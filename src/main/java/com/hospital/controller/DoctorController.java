@@ -62,6 +62,7 @@ public class DoctorController {
     private Runnable onOpenMedicalRecords;
     private Runnable onOpenPrescriptions;
     private Runnable onOpenBilling;
+    private Runnable onOpenReports;
 
     private TableView<Doctor> table;
     private TextField searchField;
@@ -94,6 +95,7 @@ public class DoctorController {
     public void setOnOpenMedicalRecords(Runnable r) { this.onOpenMedicalRecords = r; }
     public void setOnOpenPrescriptions(Runnable r) { this.onOpenPrescriptions = r; }
     public void setOnOpenBilling(Runnable r) { this.onOpenBilling = r; }
+    public void setOnOpenReports(Runnable r) { this.onOpenReports = r; }
 
     public Scene buildScene() {
         BorderPane root = new BorderPane();
@@ -247,6 +249,15 @@ public class DoctorController {
                 setText(empty || v == null ? null : currency.format(v));
             }
         });
+
+        Button reportsBtn = new Button("Reports");
+        reportsBtn.getStyleClass().addAll("nav-item", "nav-button");
+        reportsBtn.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(reportsBtn, new Insets(2, 0, 2, 0));
+        reportsBtn.setOnAction(e -> {
+            if (onOpenReports != null) onOpenReports.run();
+        });
+
 
         TableColumn<Doctor, Boolean> statCol = new TableColumn<>("Status");
         statCol.setCellValueFactory(new PropertyValueFactory<>("active"));

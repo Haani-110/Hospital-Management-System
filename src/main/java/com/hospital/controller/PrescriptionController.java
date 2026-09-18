@@ -66,6 +66,7 @@ public class PrescriptionController {
     private Runnable onOpenMedicalRecords;
     private Runnable onOpenUserManagement;
     private Runnable onOpenBilling;
+    private Runnable onOpenReports;
 
     private TableView<Prescription> table;
     private TextField searchField;
@@ -104,6 +105,7 @@ public class PrescriptionController {
     public void setOnOpenMedicalRecords(Runnable r) { this.onOpenMedicalRecords = r; }
     public void setOnOpenUserManagement(Runnable r) { this.onOpenUserManagement = r; }
     public void setOnOpenBilling(Runnable r) { this.onOpenBilling = r; }
+    public void setOnOpenReports(Runnable r) { this.onOpenReports = r; }
 
     public Scene buildScene() {
         BorderPane root = new BorderPane();
@@ -163,9 +165,10 @@ public class PrescriptionController {
         VBox.setMargin(here, new Insets(2, 0, 2, 0));
 
         Button billingBtn = navBtn("Billing", () -> { if (onOpenBilling != null) onOpenBilling.run(); });
+        Button reportsBtn = navBtn("Reports", () -> { if (onOpenReports != null) onOpenReports.run(); });
 
         sidebar.getChildren().addAll(t, new Separator(), dash, patients, here, records, appts, doctors,
-                depts, users, billingBtn);
+                depts, users, billingBtn, reportsBtn);
         return sidebar;
     }
 

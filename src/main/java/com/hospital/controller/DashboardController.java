@@ -1,8 +1,10 @@
 package com.hospital.controller;
 
+import com.hospital.model.DashboardStats;
 import com.hospital.model.Role;
 import com.hospital.model.User;
 import com.hospital.service.AuthService;
+import com.hospital.service.ReportService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
 import javafx.geometry.Insets;
@@ -13,23 +15,19 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 /**
- * Dashboard shell. Sidebar items are placeholders except:
- * <ul>
- *   <li>"Dashboard" – shows this view (active)</li>
- *   <li>"Departments" – opens Department Management (ADMIN only)</li>
- *   <li>"Logout" button (top bar) returns to login</li>
- * </ul>
- * Other future modules remain disabled placeholders.
+ * Dashboard with stats cards, quick actions, and navigation (Phase 7).
  */
 public class DashboardController {
 
     private final AuthService authService;
     private final SceneManager sceneManager;
+    private final ReportService reportService;
 
     private Runnable onLogout;
     private Runnable onOpenDepartments;
@@ -40,59 +38,34 @@ public class DashboardController {
     private Runnable onOpenMedicalRecords;
     private Runnable onOpenPrescriptions;
     private Runnable onOpenBilling;
+    private Runnable onOpenReports;
 
     private User currentUser;
 
-    public DashboardController(AuthService authService, SceneManager sceneManager) {
+    public DashboardController(AuthService authService, ReportService reportService, SceneManager sceneManager) {
         this.authService = authService;
+        this.reportService = reportService;
         this.sceneManager = sceneManager;
     }
 
-    public void setOnLogout(Runnable onLogout) {
-        this.onLogout = onLogout;
-    }
+    public void setOnLogout(Runnable onLogout) { this.onLogout = onLogout; }
+    public void setOnOpenDepartments(Runnable r) { this.onOpenDepartments = r; }
+    public void setOnOpenUserManagement(Runnable r) { this.onOpenUserManagement = r; }
+    public void setOnOpenDoctors(Runnable r) { this.onOpenDoctors = r; }
+    public void setOnOpenPatients(Runnable r) { this.onOpenPatients = r; }
+    public void setOnOpenAppointments(Runnable r) { this.onOpenAppointments = r; }
+    public void setOnOpenMedicalRecords(Runnable r) { this.onOpenMedicalRecords = r; }
+    public void setOnOpenPrescriptions(Runnable r) { this.onOpenPrescriptions = r; }
+    public void setOnOpenBilling(Runnable r) { this.onOpenBilling = r; }
+    public void setOnOpenReports(Runnable r) { this.onOpenReports = r; }
 
-    public void setOnOpenDepartments(Runnable onOpenDepartments) {
-        this.onOpenDepartments = onOpenDepartments;
-    }
-
-    public void setOnOpenUserManagement(Runnable onOpenUserManagement) {
-        this.onOpenUserManagement = onOpenUserManagement;
-    }
-
-    public void setOnOpenDoctors(Runnable onOpenDoctors) {
-        this.onOpenDoctors = onOpenDoctors;
-    }
-
-    public void setOnOpenPatients(Runnable onOpenPatients) {
-        this.onOpenPatients = onOpenPatients;
-    }
-
-    public void setOnOpenAppointments(Runnable onOpenAppointments) {
-        this.onOpenAppointments = onOpenAppointments;
-    }
-
-    public void setOnOpenMedicalRecords(Runnable onOpenMedicalRecords) {
-        this.onOpenMedicalRecords = onOpenMedicalRecords;
-    }
-
-    public void setOnOpenPrescriptions(Runnable onOpenPrescriptions) {
-        this.onOpenPrescriptions = onOpenPrescriptions;
-    }
-
-    public void setOnOpenBilling(Runnable onOpenBilling) {
-        this.onOpenBilling = onOpenBilling;
-    }
-
-    public void setCurrentUser(User user) {
-        this.currentUser = user;
-    }
+    public void setCurrentUser(User user) { this.currentUser = user; }
 
     public Scene buildScene() {
-        if (currentUser == null) {
-            currentUser = Session.getInstance().getCurrentUser();
-        }
+        if (currentUser == null) currentUser = Session.getInstance().getCurrentUser();
         boolean isAdmin = currentUser != null && currentUser.getRole() == Role.ADMIN;
+        boolean isReceptionist = currentUser != null && currentUser.getRole() == Role.RECEPTIONIST;
+        boolean isDoctor = currentUser != null && currentUser.getRole() == Role.DOCTOR;
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
@@ -106,169 +79,36 @@ public class DashboardController {
         Label appTitle = new Label("Hospital System");
         appTitle.getStyleClass().add("sidebar-title");
 
-        // "Dashboard" is the active item.
-        Node dashboardItem = navLabel("Dashboard", true, false);
+        Label dashboardItem = new Label("Dashboard");
+        dashboardItem.setMaxWidth(Double.MAX_VALUE);
+        dashboardItem.getStyleClass().addAll("nav-item", "nav-item-active");
 
-        // Departments: button (styled like a nav item) when admin, otherwise a disabled label.
-        Node departmentsItem;
-        if (isAdmin) {
-            Button btn = new Button("Departments");
-            btn.getStyleClass().addAll("nav-item", "nav-button");
-            btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> {
-                if (onOpenDepartments != null) onOpenDepartments.run();
-            });
-            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
-            departmentsItem = btn;
-        } else {
-            departmentsItem = navLabel("Departments", false, true);
-        }
-
-        // User Management: admin-only nav button.
-        Node userManagementItem;
-        if (isAdmin) {
-            Button btn = new Button("User Management");
-            btn.getStyleClass().addAll("nav-item", "nav-button");
-            btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> {
-                if (onOpenUserManagement != null) onOpenUserManagement.run();
-            });
-            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
-            userManagementItem = btn;
-        } else {
-            userManagementItem = navLabel("User Management", false, true);
-        }
-
-        // Doctor Management: admin-only.
-        Node doctorsItem;
-        if (isAdmin) {
-            Button btn = new Button("Doctors");
-            btn.getStyleClass().addAll("nav-item", "nav-button");
-            btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> {
-                if (onOpenDoctors != null) onOpenDoctors.run();
-            });
-            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
-            doctorsItem = btn;
-        } else {
-            doctorsItem = navLabel("Doctors", false, true);
-        }
-
-        // Patient Management: any authenticated user can view (the service
-        // enforces mutation restrictions). Show an enabled button for everyone
-        // logged in since DOCTORs need view/search access and RECEPTIONISTs
-        // have full CRUD alongside ADMIN.
-        boolean isLoggedIn = currentUser != null && currentUser.getRole() != null;
-        Node patientsItem;
-        if (isLoggedIn) {
-            Button btn = new Button("Patients");
-            btn.getStyleClass().addAll("nav-item", "nav-button");
-            btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> {
-                if (onOpenPatients != null) onOpenPatients.run();
-            });
-            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
-            patientsItem = btn;
-        } else {
-            patientsItem = navLabel("Patients", false, true);
-        }
-
-        // Appointments: available to every authenticated user (service enforces
-        // mutation permissions by role).
-        Node appointmentsItem;
-        if (isLoggedIn) {
-            Button btn = new Button("Appointments");
-            btn.getStyleClass().addAll("nav-item", "nav-button");
-            btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> {
-                if (onOpenAppointments != null) onOpenAppointments.run();
-            });
-            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
-            appointmentsItem = btn;
-        } else {
-            appointmentsItem = navLabel("Appointments", false, true);
-        }
-
-        // Medical Records: available to every authenticated user (service enforces
-        // mutation permissions by role).
-        Node medicalRecordsItem;
-        if (isLoggedIn) {
-            Button btn = new Button("Medical Records");
-            btn.getStyleClass().addAll("nav-item", "nav-button");
-            btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> {
-                if (onOpenMedicalRecords != null) onOpenMedicalRecords.run();
-            });
-            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
-            medicalRecordsItem = btn;
-        } else {
-            medicalRecordsItem = navLabel("Medical Records", false, true);
-        }
-
-        // Prescriptions: available to every authenticated user (service enforces
-        // mutation permissions by role: Admin/Doctor create/edit; Receptionist view only).
-        Node prescriptionsItem;
-        if (isLoggedIn) {
-            Button btn = new Button("Prescriptions");
-            btn.getStyleClass().addAll("nav-item", "nav-button");
-            btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> {
-                if (onOpenPrescriptions != null) onOpenPrescriptions.run();
-            });
-            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
-            prescriptionsItem = btn;
-        } else {
-            prescriptionsItem = navLabel("Prescriptions", false, true);
-        }
-
-        // Billing: admin + receptionist (receptionist creates/marks partial; admin full);
-        // doctor view/search only.
-        Node billingItem;
-        if (isLoggedIn) {
-            Button btn = new Button("Billing");
-            btn.getStyleClass().addAll("nav-item", "nav-button");
-            btn.setMaxWidth(Double.MAX_VALUE);
-            btn.setOnAction(e -> {
-                if (onOpenBilling != null) onOpenBilling.run();
-            });
-            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
-            billingItem = btn;
-        } else {
-            billingItem = navLabel("Billing", false, true);
-        }
+        Node patientsItem = navButtonIf("Patients", isAdmin || isReceptionist || isDoctor, onOpenPatients);
+        Node doctorsItem = navButtonIf("Doctors", isAdmin || isReceptionist || isDoctor, onOpenDoctors);
+        Node departmentsItem = navButtonIf("Departments", isAdmin, onOpenDepartments);
+        Node userManagementItem = navButtonIf("User Management", isAdmin, onOpenUserManagement);
+        Node appointmentsItem = navButtonIf("Appointments", isAdmin || isReceptionist || isDoctor, onOpenAppointments);
+        Node medicalRecordsItem = navButtonIf("Medical Records", isAdmin || isReceptionist || isDoctor, onOpenMedicalRecords);
+        Node prescriptionsItem = navButtonIf("Prescriptions", isAdmin || isReceptionist || isDoctor, onOpenPrescriptions);
+        Node billingItem = navButtonIf("Billing", isAdmin || isReceptionist || isDoctor, onOpenBilling);
+        Node reportsItem = navButtonIf("Reports", true, onOpenReports);
 
         sidebar.getChildren().addAll(
-                appTitle,
-                new Separator(),
-                dashboardItem,
-                patientsItem,
-                doctorsItem,
-                departmentsItem,
-                userManagementItem,
-                appointmentsItem,
-                medicalRecordsItem,
-                prescriptionsItem,
-                billingItem
-        );
+                appTitle, new Separator(), dashboardItem, patientsItem, doctorsItem, departmentsItem,
+                userManagementItem, appointmentsItem, medicalRecordsItem, prescriptionsItem, billingItem, reportsItem);
 
         // --- Top bar ---
         HBox topBar = new HBox(10);
         topBar.setPadding(new Insets(15, 20, 15, 20));
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.getStyleClass().add("topbar");
-
         Label pageTitle = new Label("Dashboard");
         pageTitle.getStyleClass().add("page-title");
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        String roleText = currentUser != null && currentUser.getRole() != null
-                ? currentUser.getRole().name() : "UNKNOWN";
+        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
+        String roleText = currentUser != null && currentUser.getRole() != null ? currentUser.getRole().name() : "UNKNOWN";
         String userText = currentUser != null ? currentUser.getUsername() : "unknown";
-
         Label userInfo = new Label("Logged in as: " + userText + " (" + roleText + ")");
         userInfo.getStyleClass().add("user-info");
-
         Button logoutBtn = new Button("Logout");
         logoutBtn.getStyleClass().add("secondary-button");
         logoutBtn.setOnAction(e -> {
@@ -276,39 +116,91 @@ public class DashboardController {
             currentUser = null;
             if (onLogout != null) onLogout.run();
         });
-
         topBar.getChildren().addAll(pageTitle, spacer, userInfo, logoutBtn);
 
-        // --- Content area ---
+        // --- Content ---
         VBox content = new VBox(20);
-        content.setPadding(new Insets(30));
+        content.setPadding(new Insets(25));
         content.setAlignment(Pos.TOP_LEFT);
 
         Label welcome = new Label("Welcome, " + userText + "!");
         welcome.getStyleClass().add("welcome");
 
-        StringBuilder infoText = new StringBuilder("You are logged into the Hospital Management System.\n");
-        if (isAdmin) {
-            infoText.append("As an administrator you can manage departments and user accounts from the sidebar.");
-        } else {
-            infoText.append("Additional modules (Patients, Appointments, etc.) will be added in future phases.");
+        DashboardStats stats;
+        try {
+            stats = reportService.getDashboardStats();
+        } catch (Exception e) {
+            stats = new DashboardStats(); // fail safe
         }
-        Label info = new Label(infoText.toString());
-        info.setWrapText(true);
-        info.getStyleClass().add("info-text");
 
-        content.getChildren().addAll(welcome, info);
+        FlowPane cards = new FlowPane(15, 15);
+        cards.getChildren().addAll(
+                statCard("Total Patients", String.valueOf(stats.getTotalPatients())),
+                statCard("Active Doctors", String.valueOf(stats.getActiveDoctors())),
+                statCard("Today's Appointments", String.valueOf(stats.getTodaysAppointments())),
+                statCard("Scheduled Appointments", String.valueOf(stats.getPendingAppointments())),
+                statCard("Completed Appointments", String.valueOf(stats.getCompletedAppointments())),
+                statCard("Unpaid Bills", String.valueOf(stats.getUnpaidBills())),
+                statCard("Partially Paid Bills", String.valueOf(stats.getPartiallyPaidBills())),
+                statCard("Today's Revenue (Paid)", String.format("%,.2f", stats.getTodaysRevenue()))
+        );
+
+        Label quickTitle = new Label("Quick Actions");
+        quickTitle.getStyleClass().add("section-title");
+        FlowPane quick = new FlowPane(10, 10);
+        addQuickAction(quick, "+ Add Patient", isAdmin || isReceptionist, onOpenPatients);
+        addQuickAction(quick, "New Appointment", isAdmin || isReceptionist, onOpenAppointments);
+        addQuickAction(quick, "Medical Record", isAdmin || isReceptionist, onOpenMedicalRecords);
+        addQuickAction(quick, "Prescription", isAdmin || isDoctor, onOpenPrescriptions);
+        addQuickAction(quick, "Billing", isAdmin || isReceptionist, onOpenBilling);
+        addQuickAction(quick, "Reports", true, onOpenReports);
+        addQuickAction(quick, "User Management", isAdmin, onOpenUserManagement);
+        addQuickAction(quick, "Departments", isAdmin, onOpenDepartments);
+
+        content.getChildren().addAll(welcome, cards, quickTitle, quick);
 
         BorderPane inner = new BorderPane();
         inner.setTop(topBar);
         inner.setCenter(content);
-
         root.setLeft(sidebar);
         root.setCenter(inner);
 
-        Scene scene = new Scene(root, 1000, 650);
+        Scene scene = new Scene(root, 1200, 750);
         applyCss(scene);
         return scene;
+    }
+
+    private Node navButtonIf(String label, boolean enabled, Runnable action) {
+        if (!enabled) return navLabel(label, false, true);
+        Button btn = new Button(label);
+        btn.getStyleClass().addAll("nav-item", "nav-button");
+        btn.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(btn, new Insets(2, 0, 2, 0));
+        btn.setOnAction(e -> { if (action != null) action.run(); });
+        return btn;
+    }
+
+    private void addQuickAction(FlowPane p, String label, boolean enabled, Runnable action) {
+        if (!enabled) return;
+        Button b = new Button(label);
+        b.getStyleClass().add("secondary-button");
+        b.setPadding(new Insets(10, 15, 10, 15));
+        b.setOnAction(e -> { if (action != null) action.run(); });
+        p.getChildren().add(b);
+    }
+
+    private VBox statCard(String title, String value) {
+        VBox card = new VBox(6);
+        card.setPadding(new Insets(18, 20, 18, 20));
+        card.setMinWidth(180);
+        card.setPrefWidth(200);
+        card.getStyleClass().add("card");
+        Label t = new Label(title);
+        t.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
+        Label v = new Label(value);
+        v.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1f3a8a;");
+        card.getChildren().addAll(t, v);
+        return card;
     }
 
     private Node navLabel(String label, boolean active, boolean disabled) {
@@ -316,21 +208,15 @@ public class DashboardController {
         item.setMaxWidth(Double.MAX_VALUE);
         item.getStyleClass().add("nav-item");
         if (active) item.getStyleClass().add("nav-item-active");
-        if (disabled) {
-            item.setDisable(true);
-            item.getStyleClass().add("nav-item-disabled");
-        }
+        if (disabled) { item.setDisable(true); item.getStyleClass().add("nav-item-disabled"); }
         VBox.setMargin(item, new Insets(2, 0, 2, 0));
         return item;
     }
 
     private void applyCss(Scene scene) {
         try {
-            var cssUrl = getClass().getResource("/com/hospital/css/styles.css");
-            if (cssUrl != null) {
-                scene.getStylesheets().add(cssUrl.toExternalForm());
-            }
-        } catch (Exception ignored) {
-        }
+            String css = getClass().getResource("/com/hospital/css/styles.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception ignore) {}
     }
 }

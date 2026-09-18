@@ -67,6 +67,7 @@ public class MedicalRecordController {
     private Runnable onOpenUserManagement;
     private Runnable onOpenPrescriptions;
     private Runnable onOpenBilling;
+    private Runnable onOpenReports;
 
     private TableView<MedicalRecord> table;
     private TextField searchField;
@@ -102,6 +103,7 @@ public class MedicalRecordController {
     public void setOnOpenUserManagement(Runnable r) { this.onOpenUserManagement = r; }
     public void setOnOpenPrescriptions(Runnable r) { this.onOpenPrescriptions = r; }
     public void setOnOpenBilling(Runnable r) { this.onOpenBilling = r; }
+    public void setOnOpenReports(Runnable r) { this.onOpenReports = r; }
 
     public Scene buildScene() {
         BorderPane root = new BorderPane();
@@ -267,6 +269,15 @@ public class MedicalRecordController {
         table.getSelectionModel().selectedItemProperty().addListener((o, a, n) -> {
             if (n != null) populateForm(n);
         });
+
+        Button reportsBtn = new Button("Reports");
+        reportsBtn.getStyleClass().addAll("nav-item", "nav-button");
+        reportsBtn.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(reportsBtn, new Insets(2, 0, 2, 0));
+        reportsBtn.setOnAction(e -> {
+            if (onOpenReports != null) onOpenReports.run();
+        });
+
 
         HBox tableBtnRow = new HBox(10);
         viewDetailsButton = new Button("View Details");
