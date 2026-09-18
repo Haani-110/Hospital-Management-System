@@ -66,6 +66,7 @@ public class MedicalRecordController {
     private Runnable onOpenAppointments;
     private Runnable onOpenUserManagement;
     private Runnable onOpenPrescriptions;
+    private Runnable onOpenBilling;
 
     private TableView<MedicalRecord> table;
     private TextField searchField;
@@ -100,6 +101,7 @@ public class MedicalRecordController {
     public void setOnOpenAppointments(Runnable r) { this.onOpenAppointments = r; }
     public void setOnOpenUserManagement(Runnable r) { this.onOpenUserManagement = r; }
     public void setOnOpenPrescriptions(Runnable r) { this.onOpenPrescriptions = r; }
+    public void setOnOpenBilling(Runnable r) { this.onOpenBilling = r; }
 
     public Scene buildScene() {
         BorderPane root = new BorderPane();
@@ -178,7 +180,11 @@ public class MedicalRecordController {
         styleNav(prescBtn);
         prescBtn.setOnAction(e -> { if (onOpenPrescriptions != null) onOpenPrescriptions.run(); });
 
-        sidebar.getChildren().addAll(t, new Separator(), dash, patients, here, appts, prescBtn, doctors, depts, users);
+        Button billingBtn = new Button("Billing");
+        styleNav(billingBtn);
+        billingBtn.setOnAction(e -> { if (onOpenBilling != null) onOpenBilling.run(); });
+
+        sidebar.getChildren().addAll(t, new Separator(), dash, patients, here, appts, prescBtn, billingBtn, doctors, depts, users);
         return sidebar;
     }
 

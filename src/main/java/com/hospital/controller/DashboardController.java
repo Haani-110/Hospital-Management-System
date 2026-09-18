@@ -39,6 +39,7 @@ public class DashboardController {
     private Runnable onOpenAppointments;
     private Runnable onOpenMedicalRecords;
     private Runnable onOpenPrescriptions;
+    private Runnable onOpenBilling;
 
     private User currentUser;
 
@@ -77,6 +78,10 @@ public class DashboardController {
 
     public void setOnOpenPrescriptions(Runnable onOpenPrescriptions) {
         this.onOpenPrescriptions = onOpenPrescriptions;
+    }
+
+    public void setOnOpenBilling(Runnable onOpenBilling) {
+        this.onOpenBilling = onOpenBilling;
     }
 
     public void setCurrentUser(User user) {
@@ -216,6 +221,22 @@ public class DashboardController {
             prescriptionsItem = navLabel("Prescriptions", false, true);
         }
 
+        // Billing: admin + receptionist (receptionist creates/marks partial; admin full);
+        // doctor view/search only.
+        Node billingItem;
+        if (isLoggedIn) {
+            Button btn = new Button("Billing");
+            btn.getStyleClass().addAll("nav-item", "nav-button");
+            btn.setMaxWidth(Double.MAX_VALUE);
+            btn.setOnAction(e -> {
+                if (onOpenBilling != null) onOpenBilling.run();
+            });
+            VBox.setMargin(btn, new Insets(2, 0, 2, 0));
+            billingItem = btn;
+        } else {
+            billingItem = navLabel("Billing", false, true);
+        }
+
         sidebar.getChildren().addAll(
                 appTitle,
                 new Separator(),
@@ -226,7 +247,8 @@ public class DashboardController {
                 userManagementItem,
                 appointmentsItem,
                 medicalRecordsItem,
-                prescriptionsItem
+                prescriptionsItem,
+                billingItem
         );
 
         // --- Top bar ---

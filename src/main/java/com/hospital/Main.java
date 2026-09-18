@@ -3,6 +3,7 @@ package com.hospital;
 import com.hospital.config.DatabaseConnection;
 import com.hospital.config.DatabaseInitializer;
 import com.hospital.controller.AppointmentController;
+import com.hospital.controller.BillingController;
 import com.hospital.controller.DashboardController;
 import com.hospital.controller.DepartmentController;
 import com.hospital.controller.DoctorController;
@@ -13,6 +14,10 @@ import com.hospital.controller.PrescriptionController;
 import com.hospital.controller.UserManagementController;
 import com.hospital.dao.AppointmentDao;
 import com.hospital.dao.AppointmentDaoImpl;
+import com.hospital.dao.BillDao;
+import com.hospital.dao.BillDaoImpl;
+import com.hospital.dao.BillItemDao;
+import com.hospital.dao.BillItemDaoImpl;
 import com.hospital.dao.DepartmentDao;
 import com.hospital.dao.DepartmentDaoImpl;
 import com.hospital.dao.DoctorDao;
@@ -29,6 +34,7 @@ import com.hospital.dao.UserDao;
 import com.hospital.dao.UserDaoImpl;
 import com.hospital.service.AppointmentService;
 import com.hospital.service.AuthService;
+import com.hospital.service.BillingService;
 import com.hospital.service.DepartmentService;
 import com.hospital.service.DoctorService;
 import com.hospital.service.MedicalRecordService;
@@ -52,6 +58,7 @@ public class Main extends Application {
     private AppointmentService appointmentService;
     private MedicalRecordService medicalRecordService;
     private PrescriptionService prescriptionService;
+    private BillingService billingService;
 
     @Override
     public void init() {
@@ -83,6 +90,10 @@ public class Main extends Application {
         PrescriptionItemDao prescriptionItemDao = new PrescriptionItemDaoImpl(dbConnection);
         prescriptionService = new PrescriptionService(prescriptionDao, prescriptionItemDao,
                 medicalRecordDao, doctorDao, dbConnection);
+
+        BillDao billDao = new BillDaoImpl(dbConnection);
+        BillItemDao billItemDao = new BillItemDaoImpl(dbConnection);
+        billingService = new BillingService(billDao, billItemDao, patientDao, appointmentDao, dbConnection);
     }
 
     @Override
@@ -105,6 +116,8 @@ public class Main extends Application {
                 medicalRecordService, appointmentService, sceneManager);
         PrescriptionController prescriptionController = new PrescriptionController(
                 prescriptionService, medicalRecordService, sceneManager);
+        BillingController billingController = new BillingController(
+                billingService, patientService, appointmentService, sceneManager);
 
         // --- Navigation wiring ---
 
@@ -119,6 +132,7 @@ public class Main extends Application {
         Runnable showAppointments = () -> sceneManager.show(appointmentController.buildScene());
         Runnable showMedicalRecords = () -> sceneManager.show(medicalRecordController.buildScene());
         Runnable showPrescriptions = () -> sceneManager.show(prescriptionController.buildScene());
+        Runnable showBilling = () -> sceneManager.show(billingController.buildScene());
 
         loginController.setOnLoginSuccess(user -> {
             dashboardController.setCurrentUser(user);
@@ -132,6 +146,7 @@ public class Main extends Application {
         dashboardController.setOnOpenAppointments(showAppointments);
         dashboardController.setOnOpenMedicalRecords(showMedicalRecords);
         dashboardController.setOnOpenPrescriptions(showPrescriptions);
+        dashboardController.setOnOpenBilling(showBilling);
 
         departmentController.setOnBackToDashboard(showDashboard);
         departmentController.setOnOpenUserManagement(showUsers);
@@ -140,6 +155,7 @@ public class Main extends Application {
         departmentController.setOnOpenAppointments(showAppointments);
         departmentController.setOnOpenMedicalRecords(showMedicalRecords);
         departmentController.setOnOpenPrescriptions(showPrescriptions);
+        departmentController.setOnOpenBilling(showBilling);
 
         userController.setOnBackToDashboard(showDashboard);
         userController.setOnOpenDepartments(showDepartments);
@@ -148,6 +164,7 @@ public class Main extends Application {
         userController.setOnOpenAppointments(showAppointments);
         userController.setOnOpenMedicalRecords(showMedicalRecords);
         userController.setOnOpenPrescriptions(showPrescriptions);
+        userController.setOnOpenBilling(showBilling);
 
         doctorController.setOnBackToDashboard(showDashboard);
         doctorController.setOnOpenDepartments(showDepartments);
@@ -156,6 +173,7 @@ public class Main extends Application {
         doctorController.setOnOpenAppointments(showAppointments);
         doctorController.setOnOpenMedicalRecords(showMedicalRecords);
         doctorController.setOnOpenPrescriptions(showPrescriptions);
+        doctorController.setOnOpenBilling(showBilling);
 
         patientController.setOnBackToDashboard(showDashboard);
         patientController.setOnOpenDepartments(showDepartments);
@@ -164,6 +182,7 @@ public class Main extends Application {
         patientController.setOnOpenAppointments(showAppointments);
         patientController.setOnOpenMedicalRecords(showMedicalRecords);
         patientController.setOnOpenPrescriptions(showPrescriptions);
+        patientController.setOnOpenBilling(showBilling);
 
         appointmentController.setOnBackToDashboard(showDashboard);
         appointmentController.setOnOpenDepartments(showDepartments);
@@ -172,6 +191,7 @@ public class Main extends Application {
         appointmentController.setOnOpenUserManagement(showUsers);
         appointmentController.setOnOpenMedicalRecords(showMedicalRecords);
         appointmentController.setOnOpenPrescriptions(showPrescriptions);
+        appointmentController.setOnOpenBilling(showBilling);
 
         medicalRecordController.setOnBackToDashboard(showDashboard);
         medicalRecordController.setOnOpenDepartments(showDepartments);
@@ -180,6 +200,7 @@ public class Main extends Application {
         medicalRecordController.setOnOpenAppointments(showAppointments);
         medicalRecordController.setOnOpenUserManagement(showUsers);
         medicalRecordController.setOnOpenPrescriptions(showPrescriptions);
+        medicalRecordController.setOnOpenBilling(showBilling);
 
         prescriptionController.setOnBackToDashboard(showDashboard);
         prescriptionController.setOnOpenDepartments(showDepartments);
@@ -188,6 +209,16 @@ public class Main extends Application {
         prescriptionController.setOnOpenUserManagement(showUsers);
         prescriptionController.setOnOpenAppointments(showAppointments);
         prescriptionController.setOnOpenMedicalRecords(showMedicalRecords);
+        prescriptionController.setOnOpenBilling(showBilling);
+
+        billingController.setOnBackToDashboard(showDashboard);
+        billingController.setOnOpenDepartments(showDepartments);
+        billingController.setOnOpenDoctors(showDoctors);
+        billingController.setOnOpenPatients(showPatients);
+        billingController.setOnOpenUserManagement(showUsers);
+        billingController.setOnOpenAppointments(showAppointments);
+        billingController.setOnOpenMedicalRecords(showMedicalRecords);
+        billingController.setOnOpenPrescriptions(showPrescriptions);
 
         sceneManager.show(loginController.buildScene());
         primaryStage.show();

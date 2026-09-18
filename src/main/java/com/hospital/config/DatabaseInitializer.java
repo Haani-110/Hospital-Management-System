@@ -150,6 +150,45 @@ public class DatabaseInitializer {
                 );
                 """);
 
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS bills (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    bill_number     TEXT    NOT NULL UNIQUE,
+                    patient_id      INTEGER NOT NULL,
+                    appointment_id  INTEGER,
+                    bill_date       TEXT    NOT NULL,
+                    status          TEXT    NOT NULL DEFAULT 'UNPAID'
+                                    CHECK (status IN ('UNPAID','PARTIALLY_PAID','PAID','CANCELLED')),
+                    notes           TEXT,
+                    subtotal        REAL    NOT NULL DEFAULT 0,
+                    discount        REAL    NOT NULL DEFAULT 0,
+                    total_amount    REAL    NOT NULL DEFAULT 0,
+                    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (patient_id)     REFERENCES patients(id),
+                    FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+                );
+                """);
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS bill_items (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    bill_id         INTEGER NOT NULL,
+                    description     TEXT    NOT NULL,
+                    quantity        INTEGER NOT NULL DEFAULT 1,
+                    unit_price      REAL    NOT NULL,
+                    amount          REAL    NOT NULL,
+                    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+                    updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+                    FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
+                );
+                """);
+
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_bills_patient_id ON bills(patient_id);");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_bills_appointment_id ON bills(appointment_id);");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_bill_items_bill_id ON bill_items(bill_id);");
+
             // Phase 2.2 migration: ensure is_active column exists on legacy users DBs.
             if (!columnExists(conn, "users", "is_active")) {
                 stmt.execute("ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;");

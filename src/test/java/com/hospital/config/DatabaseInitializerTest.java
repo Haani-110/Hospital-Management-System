@@ -44,6 +44,8 @@ class DatabaseInitializerTest {
         assertTrue(tables.contains("medical_records"), "medical_records table must exist");
         assertTrue(tables.contains("prescriptions"), "prescriptions table must exist");
         assertTrue(tables.contains("prescription_items"), "prescription_items table must exist");
+        assertTrue(tables.contains("bills"), "bills table must exist");
+        assertTrue(tables.contains("bill_items"), "bill_items table must exist");
     }
 
     @Test
@@ -61,6 +63,8 @@ class DatabaseInitializerTest {
         assertTrue(tables.contains("medical_records"));
         assertTrue(tables.contains("prescriptions"));
         assertTrue(tables.contains("prescription_items"));
+        assertTrue(tables.contains("bills"));
+        assertTrue(tables.contains("bill_items"));
     }
 
     @Test
@@ -344,6 +348,79 @@ class DatabaseInitializerTest {
                     s.executeUpdate("INSERT INTO prescription_items " +
                             "(prescription_id, medicine_name, dosage, frequency, duration) " +
                             "VALUES (9999, 'A', '1', 'BD', '1d')"));
+        }
+    }
+
+    @Test
+    void billsTableHasExpectedColumns() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        Set<String> cols = listColumns(db, "bills");
+        assertTrue(cols.contains("id"));
+        assertTrue(cols.contains("bill_number"));
+        assertTrue(cols.contains("patient_id"));
+        assertTrue(cols.contains("appointment_id"));
+        assertTrue(cols.contains("bill_date"));
+        assertTrue(cols.contains("status"));
+        assertTrue(cols.contains("notes"));
+        assertTrue(cols.contains("subtotal"));
+        assertTrue(cols.contains("discount"));
+        assertTrue(cols.contains("total_amount"));
+        assertTrue(cols.contains("created_at"));
+        assertTrue(cols.contains("updated_at"));
+    }
+
+    @Test
+    void billItemsTableHasExpectedColumns() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        Set<String> cols = listColumns(db, "bill_items");
+        assertTrue(cols.contains("id"));
+        assertTrue(cols.contains("bill_id"));
+        assertTrue(cols.contains("description"));
+        assertTrue(cols.contains("quantity"));
+        assertTrue(cols.contains("unit_price"));
+        assertTrue(cols.contains("amount"));
+        assertTrue(cols.contains("created_at"));
+        assertTrue(cols.contains("updated_at"));
+    }
+
+    @Test
+    void billNumberUniqueConstraint() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
+            s.execute("INSERT INTO patients (patient_code, full_name) VALUES ('PAT-000001', 'Alice')");
+            s.execute("INSERT INTO bills (bill_number, patient_id, bill_date, status, subtotal, total_amount) " +
+                    "VALUES ('BILL-000001', 1, '2030-01-01', 'UNPAID', 0, 0)");
+            assertThrows(Exception.class, () ->
+                    s.executeUpdate("INSERT INTO bills (bill_number, patient_id, bill_date, status, subtotal, total_amount) " +
+                            "VALUES ('BILL-000001', 1, '2030-01-02', 'UNPAID', 0, 0)"));
+        }
+    }
+
+    @Test
+    void billDeletionCascadesToItems() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
+            s.execute("INSERT INTO patients (patient_code, full_name) VALUES ('PAT-000001', 'Alice')");
+            s.execute("INSERT INTO bills (bill_number, patient_id, bill_date, status, subtotal, total_amount) " +
+                    "VALUES ('BILL-000001', 1, '2030-01-01', 'UNPAID', 0, 0)");
+            s.execute("INSERT INTO bill_items (bill_id, description, quantity, unit_price, amount) " +
+                    "VALUES (1, 'Consultation', 1, 100, 100)");
+            s.executeUpdate("DELETE FROM bills WHERE id = 1");
+            try (ResultSet rs = s.executeQuery("SELECT COUNT(*) AS c FROM bill_items")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt("c"));
+            }
+        }
+    }
+
+    @Test
+    void billItemFkRejectsBadBill() throws Exception {
+        new DatabaseInitializer(db).initialize();
+        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
+            assertThrows(Exception.class, () ->
+                    s.executeUpdate("INSERT INTO bill_items " +
+                            "(bill_id, description, quantity, unit_price, amount) " +
+                            "VALUES (9999, 'A', 1, 10, 10)"));
         }
     }
 
