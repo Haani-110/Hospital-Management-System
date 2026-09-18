@@ -7,6 +7,7 @@ import com.hospital.model.Role;
 import com.hospital.service.DepartmentService;
 import com.hospital.service.ReportService;
 import com.hospital.service.Session;
+import com.hospital.util.SceneManager;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
