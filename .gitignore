@@ -26,11 +26,20 @@ Thumbs.db
 *.log
 
 # SQLite database (generated locally at runtime, not committed)
+# The desktop application resolves this path relative to its working
+# directory, so running Maven from desktop/ creates desktop/data/hospital.db.
+# The root data/ entries are kept for runs launched from the repository root.
 data/hospital.db
 data/*.db
 data/*.db-shm
 data/*.db-wal
 data/*.db-journal
+desktop/data/hospital.db
+desktop/data/*.db
+desktop/data/*.db-shm
+desktop/data/*.db-wal
+desktop/data/*.db-journal
 
-# Keep the data directory itself tracked so first-run doesn't fail
+# Keep the data directories themselves tracked so first-run doesn't fail
 !data/.gitkeep
+!desktop/data/.gitkeep
