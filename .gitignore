@@ -1,0 +1,35 @@
+# Maven build output
+target/
+
+# Java compiled classes
+*.class
+
+# IDE/editor files
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Environment/config files
+.env
+
+# Logs
+*.log
+
+# SQLite database (generated locally at runtime, not committed)
+data/hospital.db
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Keep the data directory itself tracked so first-run doesn't fail
+!data/.gitkeep
