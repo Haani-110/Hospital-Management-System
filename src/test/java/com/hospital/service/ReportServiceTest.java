@@ -41,6 +41,7 @@ class ReportServiceTest {
     private AppointmentService appointmentService;
     private BillingService billingService;
     private ReportDao reportDao;
+    private int appointmentSeq = 0;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -61,6 +62,7 @@ class ReportServiceTest {
         billingService = new BillingService(billDao, billItemDao, patientDao, appointmentDao, db);
         reportDao = new ReportDao(db);
         reportService = new ReportService(reportDao);
+        appointmentSeq = 0;
     }
 
     @AfterEach
@@ -92,12 +94,22 @@ class ReportServiceTest {
     }
 
     private Appointment seedAppointment(Patient p, Doctor d, LocalDate date, String status) {
+        // Auto-generate a non-conflicting time: 10:00, 11:00, 12:00, etc.
+        String time = String.format("%02d:00", 10 + (appointmentSeq % 8));
+        appointmentSeq++;
+        return seedAppointment(p, d, date, time, status);
+    }
+
+    private Appointment seedAppointment(Patient p, Doctor d, LocalDate date, String time, String status) {
         login(Role.RECEPTIONIST);
         Appointment a = appointmentService.createAppointment(p.getId(), d.getId(),
-                date.toString(), "10:00", "Checkup for " + p.getFullName(), "");
+                date.toString(), time, "Checkup for " + p.getFullName(), "");
         if ("COMPLETED".equals(status)) {
+            login(Role.ADMIN);
             appointmentService.completeAppointment(a.getId());
         } else if ("CANCELLED".equals(status)) {
+            // CANCEL is allowed for RECEPTIONIST and ADMIN
+            login(Role.RECEPTIONIST);
             appointmentService.cancelAppointment(a.getId());
         }
         return a;
@@ -140,9 +152,10 @@ class ReportServiceTest {
         Patient p1 = seedPatient("Alice");
         Patient p2 = seedPatient("Bob");
         LocalDate today = LocalDate.now();
-        seedAppointment(p1, doc, today, "SCHEDULED");
-        seedAppointment(p2, doc, today, "COMPLETED");
-        seedAppointment(p1, doc, today.minusDays(1), "SCHEDULED");
+        // Use distinct times to avoid conflict on same doctor/day
+        seedAppointment(p1, doc, today, "10:00", "SCHEDULED");
+        seedAppointment(p2, doc, today, "11:00", "COMPLETED");
+        seedAppointment(p1, doc, today.plusDays(1), "12:00", "SCHEDULED");
         seedBill(p1, null, today, "PAID", new BigDecimal("450.00"));
         seedBill(p2, null, today, "UNPAID", new BigDecimal("450.00"));
         seedBill(p1, null, today, "PARTIALLY_PAID", new BigDecimal("450.00"));
@@ -151,7 +164,7 @@ class ReportServiceTest {
         assertEquals(2, s.getTotalPatients());
         assertEquals(1, s.getActiveDoctors());
         assertEquals(2, s.getTodaysAppointments());
-        // pending = SCHEDULED appointments (today + yesterday) = 2
+        // pending = SCHEDULED appointments (today + tomorrow) = 2
         assertEquals(2, s.getPendingAppointments());
         assertEquals(1, s.getCompletedAppointments());
         assertEquals(1, s.getUnpaidBills());
@@ -191,9 +204,11 @@ class ReportServiceTest {
         Doctor doc = seedDoctor("Dr Gen", d, "GP", new BigDecimal("200"));
         Patient p = seedPatient("Charlie");
         LocalDate today = LocalDate.now();
-        seedAppointment(p, doc, today, "SCHEDULED");
-        seedAppointment(p, doc, today.minusDays(7), "COMPLETED");
-        seedAppointment(p, doc, today.minusDays(3), "CANCELLED");
+        // All dates must be today or future to satisfy AppointmentService past-date validation
+        // Use distinct times to avoid conflict
+        seedAppointment(p, doc, today, "10:00", "SCHEDULED");
+        seedAppointment(p, doc, today.plusDays(1), "11:00", "COMPLETED");
+        seedAppointment(p, doc, today.plusDays(2), "12:00", "CANCELLED");
 
         var all = reportService.appointmentReport(null, null, null, null);
         assertEquals(3, all.getRows().size());
@@ -203,7 +218,7 @@ class ReportServiceTest {
         assertEquals("COMPLETED", completed.getRows().get(0).get(6));
 
         var range = reportService.appointmentReport(
-                today.minusDays(1).toString(), today.plusDays(1).toString(), null, null);
+                today.toString(), today.toString(), null, null);
         assertEquals(1, range.getRows().size());
 
         var byName = reportService.appointmentReport(null, null, null, "charlie");
@@ -265,11 +280,10 @@ class ReportServiceTest {
         Department d = seedDept("Gen");
         Doctor doc = seedDoctor("Dr G", d, "GP", new BigDecimal("100"));
         Patient p = seedPatient("Frank");
-        // Need to complete an appointment and add a record via medicalRecordService? No direct create
-        // but service.createMedicalRecord requires the appointment to be completed. Use appointment check-in + complete.
         Appointment a = seedAppointment(p, doc, LocalDate.now(), "COMPLETED");
         com.hospital.dao.MedicalRecordDao mrDao = new com.hospital.dao.MedicalRecordDaoImpl(db);
         MedicalRecordService mrService = new MedicalRecordService(mrDao, new AppointmentDaoImpl(db), new DoctorDaoImpl(db));
+        login(Role.ADMIN);
         mrService.createRecord(a.getId(), "Flu", null, null, "Rest and fluids", null);
 
         var all = reportService.medicalRecordReport(null, null, null);
@@ -283,19 +297,21 @@ class ReportServiceTest {
 
     @Test
     void prescriptionReportFilters() throws Exception {
-        login(Role.DOCTOR);
+        login(Role.ADMIN);
         Department d = seedDept("Gen");
         Doctor doc = seedDoctor("Dr G", d, "GP", new BigDecimal("100"));
         Patient p = seedPatient("Grace");
         Appointment a = seedAppointment(p, doc, LocalDate.now(), "COMPLETED");
         com.hospital.dao.MedicalRecordDao mrDao = new com.hospital.dao.MedicalRecordDaoImpl(db);
         MedicalRecordService mrService = new MedicalRecordService(mrDao, new AppointmentDaoImpl(db), new DoctorDaoImpl(db));
+        login(Role.ADMIN);
         MedicalRecord mr = mrService.createRecord(a.getId(), "Cold", null, null, "Rest", null);
 
         com.hospital.dao.PrescriptionDao prDao = new com.hospital.dao.PrescriptionDaoImpl(db);
         com.hospital.dao.PrescriptionItemDao piDao = new com.hospital.dao.PrescriptionItemDaoImpl(db);
         PrescriptionService prService = new PrescriptionService(prDao, piDao, mrDao, new DoctorDaoImpl(db), db);
         var prItem = new PrescriptionService.PrescriptionItemInput("Paracetamol", "500mg", "2x daily", "5 days", "Take with food");
+        login(Role.ADMIN);
         prService.createPrescription(mr.getId(), LocalDate.now().toString(), null, java.util.List.of(prItem));
 
         var all = reportService.prescriptionReport(null, null, null);

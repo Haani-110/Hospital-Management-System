@@ -233,9 +233,9 @@ public class ReportService {
         if (!sumRows.isEmpty()) {
             List<Object> r = sumRows.get(0);
             count = ((Number) r.get(0)).intValue();
-            if (r.get(1) instanceof BigDecimal bd1) sub = bd1;
-            if (r.get(2) instanceof BigDecimal bd2) disc = bd2;
-            if (r.get(3) instanceof BigDecimal bd3) tot = bd3;
+            sub = toBigDecimal(r.get(1));
+            disc = toBigDecimal(r.get(2));
+            tot = toBigDecimal(r.get(3));
         }
 
         List<String> columns = List.of("Bill #", "Date", "Patient", "Code", "Apt", "Subtotal", "Discount", "Total", "Status");
@@ -284,6 +284,17 @@ public class ReportService {
             return LocalDate.parse(s);
         } catch (DateTimeParseException e) {
             throw new ValidationException(field + " must be a valid date in YYYY-MM-DD format.");
+        }
+    }
+
+    private BigDecimal toBigDecimal(Object o) {
+        if (o == null) return BigDecimal.ZERO;
+        if (o instanceof BigDecimal bd) return bd;
+        if (o instanceof Number n) return new BigDecimal(n.toString());
+        try {
+            return new BigDecimal(o.toString());
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
         }
     }
 
