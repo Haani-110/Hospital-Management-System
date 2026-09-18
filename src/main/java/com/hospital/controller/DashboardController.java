@@ -66,6 +66,8 @@ public class DashboardController {
         boolean isAdmin = currentUser != null && currentUser.getRole() == Role.ADMIN;
         boolean isReceptionist = currentUser != null && currentUser.getRole() == Role.RECEPTIONIST;
         boolean isDoctor = currentUser != null && currentUser.getRole() == Role.DOCTOR;
+        boolean isStaff = isAdmin || isReceptionist || isDoctor;
+        boolean isAdminOrReceptionist = isAdmin || isReceptionist;
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
@@ -83,15 +85,15 @@ public class DashboardController {
         dashboardItem.setMaxWidth(Double.MAX_VALUE);
         dashboardItem.getStyleClass().addAll("nav-item", "nav-item-active");
 
-        Node patientsItem = navButtonIf("Patients", isAdmin || isReceptionist || isDoctor, onOpenPatients);
-        Node doctorsItem = navButtonIf("Doctors", isAdmin || isReceptionist || isDoctor, onOpenDoctors);
+        Node patientsItem = navButtonIf("Patients", isStaff, onOpenPatients);
+        Node doctorsItem = navButtonIf("Doctors", isAdminOrReceptionist, onOpenDoctors);
         Node departmentsItem = navButtonIf("Departments", isAdmin, onOpenDepartments);
         Node userManagementItem = navButtonIf("User Management", isAdmin, onOpenUserManagement);
-        Node appointmentsItem = navButtonIf("Appointments", isAdmin || isReceptionist || isDoctor, onOpenAppointments);
-        Node medicalRecordsItem = navButtonIf("Medical Records", isAdmin || isReceptionist || isDoctor, onOpenMedicalRecords);
-        Node prescriptionsItem = navButtonIf("Prescriptions", isAdmin || isReceptionist || isDoctor, onOpenPrescriptions);
-        Node billingItem = navButtonIf("Billing", isAdmin || isReceptionist || isDoctor, onOpenBilling);
-        Node reportsItem = navButtonIf("Reports", true, onOpenReports);
+        Node appointmentsItem = navButtonIf("Appointments", isStaff, onOpenAppointments);
+        Node medicalRecordsItem = navButtonIf("Medical Records", isStaff, onOpenMedicalRecords);
+        Node prescriptionsItem = navButtonIf("Prescriptions", isStaff, onOpenPrescriptions);
+        Node billingItem = navButtonIf("Billing", isAdminOrReceptionist, onOpenBilling);
+        Node reportsItem = navButtonIf("Reports", isStaff, onOpenReports);
 
         sidebar.getChildren().addAll(
                 appTitle, new Separator(), dashboardItem, patientsItem, doctorsItem, departmentsItem,
@@ -148,12 +150,12 @@ public class DashboardController {
         Label quickTitle = new Label("Quick Actions");
         quickTitle.getStyleClass().add("section-title");
         FlowPane quick = new FlowPane(10, 10);
-        addQuickAction(quick, "+ Add Patient", isAdmin || isReceptionist, onOpenPatients);
-        addQuickAction(quick, "New Appointment", isAdmin || isReceptionist, onOpenAppointments);
-        addQuickAction(quick, "Medical Record", isAdmin || isReceptionist, onOpenMedicalRecords);
-        addQuickAction(quick, "Prescription", isAdmin || isDoctor, onOpenPrescriptions);
-        addQuickAction(quick, "Billing", isAdmin || isReceptionist, onOpenBilling);
-        addQuickAction(quick, "Reports", true, onOpenReports);
+        addQuickAction(quick, isDoctor ? "Patients" : "+ Add Patient", isStaff, onOpenPatients);
+        addQuickAction(quick, isDoctor ? "Appointments" : "New Appointment", isStaff, onOpenAppointments);
+        addQuickAction(quick, "Medical Record", isStaff, onOpenMedicalRecords);
+        addQuickAction(quick, "Prescription", isStaff, onOpenPrescriptions);
+        addQuickAction(quick, "Billing", isAdminOrReceptionist, onOpenBilling);
+        addQuickAction(quick, "Reports", isStaff, onOpenReports);
         addQuickAction(quick, "User Management", isAdmin, onOpenUserManagement);
         addQuickAction(quick, "Departments", isAdmin, onOpenDepartments);
 
@@ -170,9 +172,10 @@ public class DashboardController {
         return scene;
     }
 
-    private Node navButtonIf(String label, boolean enabled, Runnable action) {
-        if (!enabled) return navLabel(label, false, true);
+    private Node navButtonIf(String label, boolean visible, Runnable action) {
         Button btn = new Button(label);
+        btn.setVisible(visible);
+        btn.setManaged(visible);
         btn.getStyleClass().addAll("nav-item", "nav-button");
         btn.setMaxWidth(Double.MAX_VALUE);
         VBox.setMargin(btn, new Insets(2, 0, 2, 0));
@@ -201,16 +204,6 @@ public class DashboardController {
         v.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1f3a8a;");
         card.getChildren().addAll(t, v);
         return card;
-    }
-
-    private Node navLabel(String label, boolean active, boolean disabled) {
-        Label item = new Label(label);
-        item.setMaxWidth(Double.MAX_VALUE);
-        item.getStyleClass().add("nav-item");
-        if (active) item.getStyleClass().add("nav-item-active");
-        if (disabled) { item.setDisable(true); item.getStyleClass().add("nav-item-disabled"); }
-        VBox.setMargin(item, new Insets(2, 0, 2, 0));
-        return item;
     }
 
     private void applyCss(Scene scene) {

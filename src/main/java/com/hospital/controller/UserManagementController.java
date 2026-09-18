@@ -164,6 +164,10 @@ public class UserManagementController {
     // ---------- Sidebar ----------
 
     private Node buildSidebar() {
+        Role role = Session.getInstance().getRole();
+        boolean isAdmin = role == Role.ADMIN;
+        boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
+
         VBox sidebar = new VBox(10);
         sidebar.setPadding(new Insets(20));
         sidebar.setMinWidth(220);
@@ -249,6 +253,15 @@ public class UserManagementController {
             if (onOpenReports != null) onOpenReports.run();
         });
 
+        // Hidden navigation must not reserve space in the sidebar.
+        departmentsBtn.setVisible(isAdmin);
+        departmentsBtn.setManaged(isAdmin);
+        usersItem.setVisible(isAdmin);
+        usersItem.setManaged(isAdmin);
+        doctorsBtn.setVisible(isAdminOrReceptionist);
+        doctorsBtn.setManaged(isAdminOrReceptionist);
+        billingBtn.setVisible(isAdminOrReceptionist);
+        billingBtn.setManaged(isAdminOrReceptionist);
 
         sidebar.getChildren().addAll(
                 appTitle,

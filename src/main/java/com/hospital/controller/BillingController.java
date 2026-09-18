@@ -152,13 +152,15 @@ public class BillingController {
     }
 
     private Node buildSidebar() {
+        Role role = Session.getInstance().getRole();
+        boolean isAdmin = role == Role.ADMIN;
+        boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
+
         VBox sidebar = new VBox(10);
         sidebar.setPadding(new Insets(20));
         sidebar.setMinWidth(220);
         sidebar.getStyleClass().add("sidebar");
         Label t = new Label("Hospital System"); t.getStyleClass().add("sidebar-title");
-
-        boolean isAdmin = Session.getInstance().getRole() == Role.ADMIN;
 
         Button dash = navBtn("Dashboard", () -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
         Button patients = navBtn("Patients", () -> { if (onOpenPatients != null) onOpenPatients.run(); });
@@ -167,15 +169,23 @@ public class BillingController {
         Button records = navBtn("Medical Records", () -> { if (onOpenMedicalRecords != null) onOpenMedicalRecords.run(); });
         Button presc = navBtn("Prescriptions", () -> { if (onOpenPrescriptions != null) onOpenPrescriptions.run(); });
         Button depts = navBtn("Departments", () -> { if (onOpenDepartments != null) onOpenDepartments.run(); });
-        depts.setVisible(isAdmin); depts.setManaged(isAdmin);
         Button users = navBtn("User Management", () -> { if (onOpenUserManagement != null) onOpenUserManagement.run(); });
-        users.setVisible(isAdmin); users.setManaged(isAdmin);
         Button reports = navBtn("Reports", () -> { if (onOpenReports != null) onOpenReports.run(); });
 
         Label here = new Label("Billing");
         here.setMaxWidth(Double.MAX_VALUE);
         here.getStyleClass().addAll("nav-item", "nav-item-active");
         VBox.setMargin(here, new Insets(2, 0, 2, 0));
+
+        // Hidden navigation must not reserve space in the sidebar.
+        depts.setVisible(isAdmin);
+        depts.setManaged(isAdmin);
+        users.setVisible(isAdmin);
+        users.setManaged(isAdmin);
+        doctors.setVisible(isAdminOrReceptionist);
+        doctors.setManaged(isAdminOrReceptionist);
+        here.setVisible(isAdminOrReceptionist);
+        here.setManaged(isAdminOrReceptionist);
 
         sidebar.getChildren().addAll(t, new Separator(), dash, patients, appts, here, records, presc, doctors,
                 reports, depts, users);

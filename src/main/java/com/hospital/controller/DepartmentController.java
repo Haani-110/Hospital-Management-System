@@ -4,6 +4,7 @@ import com.hospital.exception.AuthorizationException;
 import com.hospital.exception.DatabaseException;
 import com.hospital.exception.ValidationException;
 import com.hospital.model.Department;
+import com.hospital.model.Role;
 import com.hospital.service.DepartmentService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
@@ -156,6 +157,10 @@ public class DepartmentController {
     // ---------- Sidebar (same as dashboard for consistency) ----------
 
     private Node buildSidebar() {
+        Role role = Session.getInstance().getRole();
+        boolean isAdmin = role == Role.ADMIN;
+        boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
+
         VBox sidebar = new VBox(10);
         sidebar.setPadding(new Insets(20));
         sidebar.setMinWidth(220);
@@ -241,6 +246,15 @@ public class DepartmentController {
             if (onOpenReports != null) onOpenReports.run();
         });
 
+        // Hidden navigation must not reserve space in the sidebar.
+        departmentsItem.setVisible(isAdmin);
+        departmentsItem.setManaged(isAdmin);
+        usersBtn.setVisible(isAdmin);
+        usersBtn.setManaged(isAdmin);
+        doctorsBtn.setVisible(isAdminOrReceptionist);
+        doctorsBtn.setManaged(isAdminOrReceptionist);
+        billingBtn.setVisible(isAdminOrReceptionist);
+        billingBtn.setManaged(isAdminOrReceptionist);
 
         sidebar.getChildren().addAll(
                 appTitle,

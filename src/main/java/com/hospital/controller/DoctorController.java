@@ -130,6 +130,10 @@ public class DoctorController {
     }
 
     private Node buildSidebar() {
+        Role role = Session.getInstance().getRole();
+        boolean isAdmin = role == Role.ADMIN;
+        boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
+
         VBox sidebar = new VBox(10);
         sidebar.setPadding(new Insets(20));
         sidebar.setMinWidth(220);
@@ -173,8 +177,22 @@ public class DoctorController {
         styleNav(billingBtn);
         billingBtn.setOnAction(e -> { if (onOpenBilling != null) onOpenBilling.run(); });
 
+        Button reportsBtn = new Button("Reports");
+        styleNav(reportsBtn);
+        reportsBtn.setOnAction(e -> { if (onOpenReports != null) onOpenReports.run(); });
+
+        // Hidden navigation must not reserve space in the sidebar.
+        depts.setVisible(isAdmin);
+        depts.setManaged(isAdmin);
+        users.setVisible(isAdmin);
+        users.setManaged(isAdmin);
+        here.setVisible(isAdminOrReceptionist);
+        here.setManaged(isAdminOrReceptionist);
+        billingBtn.setVisible(isAdminOrReceptionist);
+        billingBtn.setManaged(isAdminOrReceptionist);
+
         sidebar.getChildren().addAll(t, new Separator(), dash, patientsBtn, here, apptBtn, recordsBtn,
-                prescBtn, billingBtn, depts, users);
+                prescBtn, billingBtn, depts, users, reportsBtn);
         return sidebar;
     }
 
