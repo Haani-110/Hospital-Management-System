@@ -128,7 +128,12 @@ class PrescriptionDaoTest {
         assertEquals(1, dao.search("LEE").size());
         assertEquals(1, dao.search("paracetamol").size());
         assertEquals(1, dao.search("AMOXI").size());
-        assertEquals(2, dao.search("2030").size());
+        // Date is not part of the search contract (which covers patient, code, doctor, medicine).
+        // A date fragment therefore matches no prescriptions.
+        assertEquals(0, dao.search("2030").size());
+        // An empty/blank query returns all prescriptions (findAll).
+        assertEquals(2, dao.search(null).size());
+        assertEquals(2, dao.search("").size());
     }
 
     @Test
