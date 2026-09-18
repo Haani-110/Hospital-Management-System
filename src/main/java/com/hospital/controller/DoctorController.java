@@ -10,6 +10,8 @@ import com.hospital.service.DepartmentService;
 import com.hospital.service.DoctorService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -31,8 +33,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -100,10 +102,12 @@ public class DoctorController {
     public Scene buildScene() {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
-        root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
-        root.setCenter(buildContent());
-        Scene scene = new Scene(root, 1200, 720);
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildTopBar());
+        workspace.setCenter(buildContent());
+        root.setLeft(UiStyles.sidebar(buildSidebar()));
+        root.setCenter(workspace);
+        Scene scene = new Scene(root);
         applyCss(scene);
         refreshTable();
         resetForm();
@@ -111,28 +115,26 @@ public class DoctorController {
     }
 
     private Node buildTopBar() {
-        HBox bar = new HBox(10);
-        bar.setPadding(new Insets(15, 20, 15, 20));
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("topbar");
         Label title = new Label("Doctor Management");
         title.getStyleClass().add("page-title");
         Button back = new Button("← Back to Dashboard");
         back.getStyleClass().add("secondary-button");
         back.setOnAction(e -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
-        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
         String roleText = Session.getInstance().getRole() != null ? Session.getInstance().getRole().name() : "UNKNOWN";
         String userText = Session.getInstance().getUsername() != null ? Session.getInstance().getUsername() : "unknown";
         Label info = new Label("Logged in as: " + userText + " (" + roleText + ")");
         info.getStyleClass().add("user-info");
-        bar.getChildren().addAll(back, title, spacer, info);
-        return bar;
+        return UiStyles.header(title, info, back);
     }
 
     private Node buildSidebar() {
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        Role role = Session.getInstance().getRole();
+        boolean isAdmin = role == Role.ADMIN;
+        boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
+
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
         Label t = new Label("Hospital System"); t.getStyleClass().add("sidebar-title");
 
@@ -173,8 +175,22 @@ public class DoctorController {
         styleNav(billingBtn);
         billingBtn.setOnAction(e -> { if (onOpenBilling != null) onOpenBilling.run(); });
 
+        Button reportsBtn = new Button("Reports");
+        styleNav(reportsBtn);
+        reportsBtn.setOnAction(e -> { if (onOpenReports != null) onOpenReports.run(); });
+
+        // Hidden navigation must not reserve space in the sidebar.
+        depts.setVisible(isAdmin);
+        depts.setManaged(isAdmin);
+        users.setVisible(isAdmin);
+        users.setManaged(isAdmin);
+        here.setVisible(isAdminOrReceptionist);
+        here.setManaged(isAdminOrReceptionist);
+        billingBtn.setVisible(isAdminOrReceptionist);
+        billingBtn.setManaged(isAdminOrReceptionist);
+
         sidebar.getChildren().addAll(t, new Separator(), dash, patientsBtn, here, apptBtn, recordsBtn,
-                prescBtn, billingBtn, depts, users);
+                prescBtn, billingBtn, depts, users, reportsBtn);
         return sidebar;
     }
 
@@ -193,16 +209,12 @@ public class DoctorController {
     }
 
     private Node buildContent() {
-        HBox content = new HBox(20);
-        content.setPadding(new Insets(20));
-
         // ---------- Table pane ----------
         VBox tablePane = new VBox(10);
-        tablePane.setPadding(new Insets(10));
+        tablePane.setPadding(new Insets(16));
         tablePane.getStyleClass().add("card");
-        HBox.setHgrow(tablePane, Priority.ALWAYS);
 
-        HBox filterRow = new HBox(10);
+        FlowPane filterRow = new FlowPane(8, 8);
         searchField = new TextField();
         searchField.setPromptText("Search name, specialization, phone, email...");
         searchField.setPrefWidth(320);
@@ -240,6 +252,7 @@ public class DoctorController {
         emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
 
         TableColumn<Doctor, Double> feeCol = new TableColumn<>("Fee");
+        feeCol.getStyleClass().add("numeric-column");
         feeCol.setCellValueFactory(new PropertyValueFactory<>("consultationFee"));
         NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.US);
         feeCol.setCellFactory(col -> new TableCell<>() {
@@ -263,10 +276,10 @@ public class DoctorController {
         statCol.setCellValueFactory(new PropertyValueFactory<>("active"));
         statCol.setCellFactory(col -> new TableCell<>() {
             @Override
-            protected void updateItem(Boolean a, boolean empty) {
-                super.updateItem(a, empty);
-                if (empty || a == null) setText(null);
-                else setText(a ? "Active" : "Inactive");
+            protected void updateItem(Boolean value, boolean empty) {
+                super.updateItem(value, empty);
+                setText(empty || value == null ? null : value ? "Active" : "Inactive");
+                UiStyles.statusCell(this, getText());
             }
         });
 
@@ -280,9 +293,7 @@ public class DoctorController {
 
         // ---------- Form pane ----------
         VBox formPane = new VBox(10);
-        formPane.setPadding(new Insets(10));
-        formPane.setMinWidth(360);
-        formPane.setMaxWidth(400);
+        formPane.setPadding(new Insets(18));
         formPane.getStyleClass().add("card");
 
         formTitle = new Label("Add Doctor");
@@ -355,17 +366,17 @@ public class DoctorController {
         clearButton = new Button("Clear / New");
         clearButton.getStyleClass().add("secondary-button");
 
-        HBox btns = new HBox(10, saveButton, toggleActiveButton, clearButton);
+        FlowPane btns = new FlowPane(8, 8, saveButton, toggleActiveButton, clearButton);
         btns.setAlignment(Pos.CENTER_LEFT);
 
         saveButton.setOnAction(e -> onSave());
         toggleActiveButton.setOnAction(e -> onToggleActive());
         clearButton.setOnAction(e -> resetForm());
 
-        formPane.getChildren().addAll(formTitle, form, messageLabel, btns);
-        content.getChildren().addAll(tablePane, formPane);
+        UiStyles.form(form);
+        formPane.getChildren().addAll(formTitle, UiStyles.hint("* Required fields"), form, messageLabel, btns);
         populateDepartmentChoices();
-        return content;
+        return UiStyles.workspace(tablePane, formPane);
     }
 
     private void populateDepartmentChoices() {
@@ -480,6 +491,7 @@ public class DoctorController {
         confirm.setContentText(willBeActive
                 ? "Are you sure you want to activate \"" + editingDoctor.getFullName() + "\"?"
                 : "Are you sure you want to deactivate \"" + editingDoctor.getFullName() + "\"?");
+        UiStyles.dialog(confirm, !willBeActive);
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isEmpty() || res.get() != ButtonType.OK) return;
         try {
@@ -518,9 +530,6 @@ public class DoctorController {
     }
 
     private void applyCss(Scene scene) {
-        try {
-            var cssUrl = getClass().getResource("/com/hospital/css/styles.css");
-            if (cssUrl != null) scene.getStylesheets().add(cssUrl.toExternalForm());
-        } catch (Exception ignored) {}
+        UiStyles.apply(scene);
     }
 }

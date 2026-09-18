@@ -106,8 +106,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Hospital Management System");
-        primaryStage.setMinWidth(800);
-        primaryStage.setMinHeight(600);
+        // SceneManager owns window sizing and the persistent desktop shell.
 
         SceneManager sceneManager = new SceneManager(primaryStage);
 

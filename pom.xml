@@ -11,7 +11,7 @@
     <packaging>jar</packaging>
 
     <name>Hospital Management System</name>
-    <description>Phase 1 of a free, local JavaFX desktop Hospital Management System.</description>
+    <description>A local JavaFX and SQLite desktop Hospital Management System for learning and demonstration.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

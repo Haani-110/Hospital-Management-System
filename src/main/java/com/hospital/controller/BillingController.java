@@ -13,6 +13,8 @@ import com.hospital.service.BillingService;
 import com.hospital.service.PatientService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -38,8 +40,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -122,10 +124,12 @@ public class BillingController {
     public Scene buildScene() {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
-        root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
-        root.setCenter(buildContent());
-        Scene scene = new Scene(root, 1400, 800);
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildTopBar());
+        workspace.setCenter(buildContent());
+        root.setLeft(UiStyles.sidebar(buildSidebar()));
+        root.setCenter(workspace);
+        Scene scene = new Scene(root);
         applyCss(scene);
         refreshTable();
         resetForm();
@@ -133,32 +137,28 @@ public class BillingController {
     }
 
     private Node buildTopBar() {
-        HBox bar = new HBox(10);
-        bar.setPadding(new Insets(15, 20, 15, 20));
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("topbar");
         Label title = new Label("Billing Management");
         title.getStyleClass().add("page-title");
         Button back = new Button("← Back to Dashboard");
         back.getStyleClass().add("secondary-button");
         back.setOnAction(e -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
-        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
         String roleText = Session.getInstance().getRole() != null ? Session.getInstance().getRole().name() : "UNKNOWN";
         String userText = Session.getInstance().getUsername() != null ? Session.getInstance().getUsername() : "unknown";
         Label info = new Label("Logged in as: " + userText + " (" + roleText + ")");
         info.getStyleClass().add("user-info");
-        bar.getChildren().addAll(back, title, spacer, info);
-        return bar;
+        return UiStyles.header(title, info, back);
     }
 
     private Node buildSidebar() {
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        Role role = Session.getInstance().getRole();
+        boolean isAdmin = role == Role.ADMIN;
+        boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
+
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
         Label t = new Label("Hospital System"); t.getStyleClass().add("sidebar-title");
-
-        boolean isAdmin = Session.getInstance().getRole() == Role.ADMIN;
 
         Button dash = navBtn("Dashboard", () -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
         Button patients = navBtn("Patients", () -> { if (onOpenPatients != null) onOpenPatients.run(); });
@@ -167,15 +167,23 @@ public class BillingController {
         Button records = navBtn("Medical Records", () -> { if (onOpenMedicalRecords != null) onOpenMedicalRecords.run(); });
         Button presc = navBtn("Prescriptions", () -> { if (onOpenPrescriptions != null) onOpenPrescriptions.run(); });
         Button depts = navBtn("Departments", () -> { if (onOpenDepartments != null) onOpenDepartments.run(); });
-        depts.setVisible(isAdmin); depts.setManaged(isAdmin);
         Button users = navBtn("User Management", () -> { if (onOpenUserManagement != null) onOpenUserManagement.run(); });
-        users.setVisible(isAdmin); users.setManaged(isAdmin);
         Button reports = navBtn("Reports", () -> { if (onOpenReports != null) onOpenReports.run(); });
 
         Label here = new Label("Billing");
         here.setMaxWidth(Double.MAX_VALUE);
         here.getStyleClass().addAll("nav-item", "nav-item-active");
         VBox.setMargin(here, new Insets(2, 0, 2, 0));
+
+        // Hidden navigation must not reserve space in the sidebar.
+        depts.setVisible(isAdmin);
+        depts.setManaged(isAdmin);
+        users.setVisible(isAdmin);
+        users.setManaged(isAdmin);
+        doctors.setVisible(isAdminOrReceptionist);
+        doctors.setManaged(isAdminOrReceptionist);
+        here.setVisible(isAdminOrReceptionist);
+        here.setManaged(isAdminOrReceptionist);
 
         sidebar.getChildren().addAll(t, new Separator(), dash, patients, appts, here, records, presc, doctors,
                 reports, depts, users);
@@ -192,15 +200,11 @@ public class BillingController {
     }
 
     private Node buildContent() {
-        HBox content = new HBox(20);
-        content.setPadding(new Insets(20));
-
         VBox tablePane = new VBox(10);
-        tablePane.setPadding(new Insets(10));
+        tablePane.setPadding(new Insets(16));
         tablePane.getStyleClass().add("card");
-        HBox.setHgrow(tablePane, Priority.ALWAYS);
 
-        HBox filterRow = new HBox(10);
+        FlowPane filterRow = new FlowPane(8, 8);
         searchField = new TextField();
         searchField.setPromptText("Search bill #, patient, code, doctor, item...");
         searchField.setPrefWidth(400);
@@ -242,8 +246,16 @@ public class BillingController {
         totCol.setCellValueFactory(c -> new SimpleObjectProperty<>(c.getValue().getTotalAmount()));
         TableColumn<Bill, String> statCol = new TableColumn<>("Status");
         statCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getStatus()));
-        statCol.setPrefWidth(110);
+        statCol.setPrefWidth(150);
+        statCol.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String value, boolean empty) {
+                super.updateItem(value, empty);
+                setText(empty || value == null ? null : value);
+                UiStyles.statusCell(this, getText());
+            }
+        });
         TableColumn<Bill, Integer> itemsCol = new TableColumn<>("Items");
+        itemsCol.getStyleClass().add("numeric-column");
         itemsCol.setCellValueFactory(c -> new SimpleIntegerProperty(c.getValue().getItemCount()).asObject());
         itemsCol.setPrefWidth(60);
 
@@ -252,7 +264,7 @@ public class BillingController {
         table.getColumns().addAll(cols);
         table.getSelectionModel().selectedItemProperty().addListener((o, a, n) -> { if (n != null) populateForm(n); });
 
-        HBox actionRow = new HBox(10);
+        FlowPane actionRow = new FlowPane(8, 8);
         viewDetailsButton = new Button("View Details");
         viewDetailsButton.getStyleClass().add("secondary-button");
         viewDetailsButton.setDisable(true);
@@ -277,9 +289,7 @@ public class BillingController {
         VBox.setVgrow(table, Priority.ALWAYS);
 
         VBox formPane = new VBox(10);
-        formPane.setPadding(new Insets(10));
-        formPane.setMinWidth(560);
-        formPane.setMaxWidth(640);
+        formPane.setPadding(new Insets(18));
         formPane.getStyleClass().add("card");
 
         formTitle = new Label("New Bill");
@@ -338,7 +348,8 @@ public class BillingController {
 
         itemsData = FXCollections.observableArrayList();
         itemsTable = new TableView<>(itemsData);
-        itemsTable.setPrefHeight(200);
+        itemsTable.setPrefHeight(220);
+        itemsTable.setMinHeight(180);
         itemsTable.setEditable(true);
         itemsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
@@ -350,6 +361,7 @@ public class BillingController {
             itemsTable.refresh();
         });
         TableColumn<ItemRow, String> qtyCol = new TableColumn<>("Qty");
+        qtyCol.getStyleClass().add("numeric-column");
         qtyCol.setCellValueFactory(c -> c.getValue().quantityProperty());
         qtyCol.setCellFactory(TextFieldTableCell.forTableColumn());
         qtyCol.setPrefWidth(60);
@@ -359,6 +371,7 @@ public class BillingController {
             itemsTable.refresh();
         });
         TableColumn<ItemRow, String> priceCol = new TableColumn<>("Unit Price");
+        priceCol.getStyleClass().add("numeric-column");
         priceCol.setCellValueFactory(c -> c.getValue().unitPriceProperty());
         priceCol.setCellFactory(TextFieldTableCell.forTableColumn());
         priceCol.setPrefWidth(100);
@@ -368,6 +381,7 @@ public class BillingController {
             itemsTable.refresh();
         });
         TableColumn<ItemRow, String> amtCol = new TableColumn<>("Amount");
+        amtCol.getStyleClass().add("numeric-column");
         amtCol.setCellValueFactory(c -> new SimpleStringProperty(formatMoney(c.getValue().computeAmount())));
         amtCol.setPrefWidth(100);
         amtCol.setEditable(false);
@@ -376,7 +390,7 @@ public class BillingController {
         TableColumn<ItemRow, ?>[] itemCols = new TableColumn[] { descCol, qtyCol, priceCol, amtCol };
         itemsTable.getColumns().addAll(itemCols);
 
-        HBox itemBtns = new HBox(10);
+        FlowPane itemBtns = new FlowPane(8, 8);
         Button addItemButton = new Button("+ Add Item");
         addItemButton.getStyleClass().add("secondary-button");
         addItemButton.setOnAction(e -> {
@@ -398,10 +412,12 @@ public class BillingController {
         });
         itemBtns.getChildren().addAll(addItemButton, removeItemButton);
 
-        HBox totalsBox = new HBox(30);
+        FlowPane totalsBox = new FlowPane(8, 8);
         totalsBox.setPadding(new Insets(6, 0, 0, 0));
         subtotalLabel = new Label("Subtotal: 0.00");
         totalLabel = new Label("Total: 0.00");
+        totalLabel.getStyleClass().add("billing-total");
+        totalsBox.getStyleClass().add("summary-strip");
         totalsBox.getChildren().addAll(subtotalLabel, totalLabel);
 
         messageLabel = new Label();
@@ -414,18 +430,20 @@ public class BillingController {
         saveButton.setDefaultButton(true);
         clearButton = new Button("Clear / New");
         clearButton.getStyleClass().add("secondary-button");
-        HBox btns = new HBox(10, saveButton, clearButton);
+        FlowPane btns = new FlowPane(8, 8, saveButton, clearButton);
         btns.setAlignment(Pos.CENTER_LEFT);
         btns.setPadding(new Insets(6, 0, 0, 0));
         saveButton.setOnAction(e -> onSave());
         clearButton.setOnAction(e -> resetForm());
 
-        formPane.getChildren().addAll(formTitle, form, itemsLabel, itemsTable, itemBtns, totalsBox,
-                notesArea, messageLabel, btns);
+        UiStyles.form(form);
+        formPane.getChildren().addAll(formTitle, UiStyles.hint("* Required fields"), form,
+                itemsLabel, UiStyles.hint("Double-click a cell to edit; press Enter to confirm."),
+                UiStyles.tableViewport(itemsTable), itemBtns, totalsBox,
+                messageLabel, btns);
 
-        content.getChildren().addAll(tablePane, formPane);
         populatePatientOptions();
-        return content;
+        return UiStyles.workspace(tablePane, formPane);
     }
 
     private TableColumn<Bill, BigDecimal> moneyCol(String title) {
@@ -436,7 +454,8 @@ public class BillingController {
                 setText(empty || v == null ? null : String.format(MONEY_FMT, v));
             }
         });
-        col.setPrefWidth(90);
+        col.setPrefWidth(100);
+        col.getStyleClass().add("numeric-column");
         return col;
     }
 
@@ -595,6 +614,7 @@ public class BillingController {
         conf.setTitle("Cancel Bill");
         conf.setHeaderText("Cancel bill " + b.getBillNumber() + "?");
         conf.setContentText("Cancelled bills cannot be edited or changed back. This action preserves the record for history.");
+        UiStyles.dialog(conf, true);
         Optional<ButtonType> res = conf.showAndWait();
         if (res.isEmpty() || res.get() != ButtonType.OK) return;
         clearMessage();
@@ -645,6 +665,7 @@ public class BillingController {
             content.setMaxWidth(700);
             alert.getDialogPane().setContent(content);
             alert.getDialogPane().setMinWidth(750);
+            UiStyles.dialog(alert, false);
             alert.showAndWait();
         } catch (ValidationException | AuthorizationException | DatabaseException ex) {
             showError(ex.getMessage());
@@ -750,10 +771,7 @@ public class BillingController {
     }
 
     private void applyCss(Scene scene) {
-        try {
-            String css = getClass().getResource("/com/hospital/css/styles.css").toExternalForm();
-            scene.getStylesheets().add(css);
-        } catch (Exception ignore) {}
+        UiStyles.apply(scene);
     }
 
     // ---------- editable item row for JavaFX ----------

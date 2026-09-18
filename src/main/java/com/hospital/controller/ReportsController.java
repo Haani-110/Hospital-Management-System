@@ -8,6 +8,8 @@ import com.hospital.service.DepartmentService;
 import com.hospital.service.ReportService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiStyles;
+
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -18,18 +20,19 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -86,40 +89,39 @@ public class ReportsController {
     public Scene buildScene() {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
-        root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
-        root.setCenter(buildContent());
-        Scene scene = new Scene(root, 1400, 800);
+        BorderPane workspace = new BorderPane();
+        workspace.setTop(buildTopBar());
+        workspace.setCenter(buildContent());
+        root.setLeft(UiStyles.sidebar(buildSidebar()));
+        root.setCenter(workspace);
+        Scene scene = new Scene(root);
         applyCss(scene);
         return scene;
     }
 
     private Node buildTopBar() {
-        HBox bar = new HBox(10);
-        bar.setPadding(new Insets(15, 20, 15, 20));
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("topbar");
         Label title = new Label("Reports");
         title.getStyleClass().add("page-title");
         Button back = new Button("← Back to Dashboard");
         back.getStyleClass().add("secondary-button");
         back.setOnAction(e -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
-        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
         String roleText = Session.getInstance().getRole() != null ? Session.getInstance().getRole().name() : "UNKNOWN";
         String userText = Session.getInstance().getUsername() != null ? Session.getInstance().getUsername() : "unknown";
         Label info = new Label("Logged in as: " + userText + " (" + roleText + ")");
         info.getStyleClass().add("user-info");
-        bar.getChildren().addAll(back, title, spacer, info);
-        return bar;
+        return UiStyles.header(title, info, back);
     }
 
     private Node buildSidebar() {
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        Role role = Session.getInstance().getRole();
+        boolean isAdmin = role == Role.ADMIN;
+        boolean isAdminOrReceptionist = isAdmin || role == Role.RECEPTIONIST;
+
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
         Label t = new Label("Hospital System"); t.getStyleClass().add("sidebar-title");
-        boolean isAdmin = Session.getInstance().getRole() == Role.ADMIN;
         Button dash = navBtn("Dashboard", () -> { if (onBackToDashboard != null) onBackToDashboard.run(); });
         Button patients = navBtn("Patients", () -> { if (onOpenPatients != null) onOpenPatients.run(); });
         Button doctors = navBtn("Doctors", () -> { if (onOpenDoctors != null) onOpenDoctors.run(); });
@@ -128,13 +130,22 @@ public class ReportsController {
         Button presc = navBtn("Prescriptions", () -> { if (onOpenPrescriptions != null) onOpenPrescriptions.run(); });
         Button billing = navBtn("Billing", () -> { if (onOpenBilling != null) onOpenBilling.run(); });
         Button depts = navBtn("Departments", () -> { if (onOpenDepartments != null) onOpenDepartments.run(); });
-        depts.setVisible(isAdmin); depts.setManaged(isAdmin);
         Button users = navBtn("User Management", () -> { if (onOpenUserManagement != null) onOpenUserManagement.run(); });
-        users.setVisible(isAdmin); users.setManaged(isAdmin);
         Label here = new Label("Reports");
         here.setMaxWidth(Double.MAX_VALUE);
         here.getStyleClass().addAll("nav-item", "nav-item-active");
         VBox.setMargin(here, new Insets(2, 0, 2, 0));
+
+        // Hidden navigation must not reserve space in the sidebar.
+        depts.setVisible(isAdmin);
+        depts.setManaged(isAdmin);
+        users.setVisible(isAdmin);
+        users.setManaged(isAdmin);
+        doctors.setVisible(isAdminOrReceptionist);
+        doctors.setManaged(isAdminOrReceptionist);
+        billing.setVisible(isAdminOrReceptionist);
+        billing.setManaged(isAdminOrReceptionist);
+
         sidebar.getChildren().addAll(t, new Separator(), dash, patients, appts, here, records, presc, billing, doctors,
                 depts, users);
         return sidebar;
@@ -153,7 +164,8 @@ public class ReportsController {
         VBox content = new VBox(12);
         content.setPadding(new Insets(20));
 
-        HBox topRow = new HBox(10);
+        FlowPane topRow = new FlowPane(12, 12);
+        topRow.getStyleClass().add("filter-toolbar");
         reportType = new ComboBox<>(FXCollections.observableArrayList(
                 "Appointments", "Patients", "Doctors", "Medical Records", "Prescriptions", "Billing"));
         reportType.setValue("Appointments");
@@ -161,10 +173,12 @@ public class ReportsController {
         searchField = new TextField();
         searchField.setPromptText("Search...");
         searchField.setPrefWidth(300);
-        topRow.getChildren().addAll(new Label("Report:"), reportType, new Label("Search:"), searchField);
+        VBox search = UiStyles.field("Search", searchField);
+        search.setPrefWidth(320);
+        topRow.getChildren().addAll(UiStyles.field("Report type", reportType), search);
 
-        GridPane filterRow = new GridPane();
-        filterRow.setHgap(10); filterRow.setVgap(6);
+        FlowPane filterRow = new FlowPane(12, 12);
+        filterRow.getStyleClass().add("filter-toolbar");
         fromPicker = new DatePicker();
         toPicker = new DatePicker();
         statusFilter = new ComboBox<>(FXCollections.observableArrayList("ALL", "SCHEDULED", "COMPLETED", "CANCELLED",
@@ -179,18 +193,29 @@ public class ReportsController {
         Button clear = new Button("Clear"); clear.getStyleClass().add("secondary-button");
         clear.setOnAction(e -> clearFilters());
 
-        filterRow.add(new Label("From:"), 0, 0);
-        filterRow.add(fromPicker, 1, 0);
-        filterRow.add(new Label("To:"), 2, 0);
-        filterRow.add(toPicker, 3, 0);
-        filterRow.add(new Label("Status:"), 4, 0);
-        filterRow.add(statusFilter, 5, 0);
-        filterRow.add(new Label("Active:"), 6, 0);
-        filterRow.add(activeFilter, 7, 0);
-        filterRow.add(new Label("Department:"), 8, 0);
-        filterRow.add(deptFilter, 9, 0);
-        filterRow.add(apply, 10, 0);
-        filterRow.add(clear, 11, 0);
+        fromPicker.setPromptText("YYYY-MM-DD");
+        toPicker.setPromptText("YYYY-MM-DD");
+        FlowPane dateRange = new FlowPane(12, 12,
+                UiStyles.field("From date", fromPicker), UiStyles.field("To date", toPicker));
+        dateRange.getStyleClass().add("filter-toolbar");
+        filterRow.getChildren().addAll(UiStyles.field("Status", statusFilter),
+                UiStyles.field("Active / inactive", activeFilter), UiStyles.field("Department", deptFilter));
+        Label rangeTitle = new Label("Date range");
+        rangeTitle.getStyleClass().add("filter-section-title");
+        Label additionalTitle = new Label("Additional filters");
+        additionalTitle.getStyleClass().add("filter-section-title");
+        FlowPane filterActions = new FlowPane(8, 8, apply, clear);
+        filterActions.getStyleClass().add("filter-actions");
+        Label filterTitle = new Label("Report filters");
+        filterTitle.getStyleClass().add("section-title");
+        for (Node field : filterRow.getChildren()) ((Region) field).setPrefWidth(150);
+        VBox dates = new VBox(8, rangeTitle, dateRange);
+        VBox additional = new VBox(8, additionalTitle, filterRow);
+        dates.getStyleClass().add("filter-section");
+        additional.getStyleClass().add("filter-section");
+        GridPane sections = UiStyles.responsiveGrid(2, 440, dates, additional);
+        VBox filters = new VBox(12, filterTitle, topRow, sections, filterActions);
+        filters.getStyleClass().addAll("card", "filter-panel");
 
         table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
@@ -198,19 +223,31 @@ public class ReportsController {
         VBox.setVgrow(table, Priority.ALWAYS);
 
         summaryLabel = new Label("");
-        summaryLabel.getStyleClass().add("info-text");
+        summaryLabel.getStyleClass().add("summary-strip");
+        summaryLabel.setWrapText(true);
+        summaryLabel.setMaxWidth(Double.MAX_VALUE);
 
         messageLabel = new Label();
         messageLabel.setWrapText(true);
         messageLabel.setVisible(false); messageLabel.setManaged(false);
 
-        content.getChildren().addAll(topRow, filterRow, table, summaryLabel, messageLabel);
+        ScrollPane results = UiStyles.tableViewport(table);
+        results.setMinHeight(320);
+        VBox.setVgrow(results, Priority.ALWAYS);
+        Label resultsTitle = new Label("Report results");
+        resultsTitle.getStyleClass().add("section-title");
+        VBox resultsPanel = new VBox(12, resultsTitle, summaryLabel, results);
+        resultsPanel.getStyleClass().addAll("card", "report-results");
+        VBox.setVgrow(resultsPanel, Priority.ALWAYS);
+        content.getChildren().addAll(filters, resultsPanel, messageLabel);
 
         searchField.textProperty().addListener((o, a, b) -> runReport());
         reportType.setOnAction(e -> { onReportTypeChanged(); runReport(); });
         onReportTypeChanged();
         runReport();
-        return content;
+        ScrollPane page = UiStyles.scroll(content);
+        page.setFitToHeight(true);
+        return page;
     }
 
     private void reloadDepartments() {
@@ -305,10 +342,13 @@ public class ReportsController {
                     else if (o instanceof BigDecimal bd) setText(String.format("%,.2f", bd));
                     else if (o instanceof java.sql.Date d) setText(d.toString());
                     else setText(o.toString());
+                    UiStyles.statusCell(this, "Status".equals(col.getText()) ? getText() : null);
+                    setAlignment(o instanceof Number ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
                 }
             });
             table.getColumns().add(col);
         }
+        UiStyles.readableTable(table);
         table.setItems(FXCollections.observableArrayList(rows));
     }
 
@@ -323,10 +363,7 @@ public class ReportsController {
     }
 
     private void applyCss(Scene scene) {
-        try {
-            String css = getClass().getResource("/com/hospital/css/styles.css").toExternalForm();
-            scene.getStylesheets().add(css);
-        } catch (Exception ignore) {}
+        UiStyles.apply(scene);
     }
 
     private static class DepartmentOption {

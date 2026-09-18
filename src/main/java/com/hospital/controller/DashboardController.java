@@ -7,6 +7,9 @@ import com.hospital.service.AuthService;
 import com.hospital.service.ReportService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiMotion;
+import com.hospital.util.UiStyles;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -16,8 +19,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
 /**
@@ -66,14 +68,16 @@ public class DashboardController {
         boolean isAdmin = currentUser != null && currentUser.getRole() == Role.ADMIN;
         boolean isReceptionist = currentUser != null && currentUser.getRole() == Role.RECEPTIONIST;
         boolean isDoctor = currentUser != null && currentUser.getRole() == Role.DOCTOR;
+        boolean isStaff = isAdmin || isReceptionist || isDoctor;
+        boolean isAdminOrReceptionist = isAdmin || isReceptionist;
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
 
         // --- Sidebar ---
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setMinWidth(220);
+        VBox sidebar = new VBox(4);
+        sidebar.setPadding(new Insets(16));
+        sidebar.setMinWidth(0);
         sidebar.getStyleClass().add("sidebar");
 
         Label appTitle = new Label("Hospital System");
@@ -83,28 +87,23 @@ public class DashboardController {
         dashboardItem.setMaxWidth(Double.MAX_VALUE);
         dashboardItem.getStyleClass().addAll("nav-item", "nav-item-active");
 
-        Node patientsItem = navButtonIf("Patients", isAdmin || isReceptionist || isDoctor, onOpenPatients);
-        Node doctorsItem = navButtonIf("Doctors", isAdmin || isReceptionist || isDoctor, onOpenDoctors);
+        Node patientsItem = navButtonIf("Patients", isStaff, onOpenPatients);
+        Node doctorsItem = navButtonIf("Doctors", isAdminOrReceptionist, onOpenDoctors);
         Node departmentsItem = navButtonIf("Departments", isAdmin, onOpenDepartments);
         Node userManagementItem = navButtonIf("User Management", isAdmin, onOpenUserManagement);
-        Node appointmentsItem = navButtonIf("Appointments", isAdmin || isReceptionist || isDoctor, onOpenAppointments);
-        Node medicalRecordsItem = navButtonIf("Medical Records", isAdmin || isReceptionist || isDoctor, onOpenMedicalRecords);
-        Node prescriptionsItem = navButtonIf("Prescriptions", isAdmin || isReceptionist || isDoctor, onOpenPrescriptions);
-        Node billingItem = navButtonIf("Billing", isAdmin || isReceptionist || isDoctor, onOpenBilling);
-        Node reportsItem = navButtonIf("Reports", true, onOpenReports);
+        Node appointmentsItem = navButtonIf("Appointments", isStaff, onOpenAppointments);
+        Node medicalRecordsItem = navButtonIf("Medical Records", isStaff, onOpenMedicalRecords);
+        Node prescriptionsItem = navButtonIf("Prescriptions", isStaff, onOpenPrescriptions);
+        Node billingItem = navButtonIf("Billing", isAdminOrReceptionist, onOpenBilling);
+        Node reportsItem = navButtonIf("Reports", isStaff, onOpenReports);
 
         sidebar.getChildren().addAll(
                 appTitle, new Separator(), dashboardItem, patientsItem, doctorsItem, departmentsItem,
                 userManagementItem, appointmentsItem, medicalRecordsItem, prescriptionsItem, billingItem, reportsItem);
 
         // --- Top bar ---
-        HBox topBar = new HBox(10);
-        topBar.setPadding(new Insets(15, 20, 15, 20));
-        topBar.setAlignment(Pos.CENTER_LEFT);
-        topBar.getStyleClass().add("topbar");
         Label pageTitle = new Label("Dashboard");
         pageTitle.getStyleClass().add("page-title");
-        HBox spacer = new HBox(); HBox.setHgrow(spacer, Priority.ALWAYS);
         String roleText = currentUser != null && currentUser.getRole() != null ? currentUser.getRole().name() : "UNKNOWN";
         String userText = currentUser != null ? currentUser.getUsername() : "unknown";
         Label userInfo = new Label("Logged in as: " + userText + " (" + roleText + ")");
@@ -116,15 +115,18 @@ public class DashboardController {
             currentUser = null;
             if (onLogout != null) onLogout.run();
         });
-        topBar.getChildren().addAll(pageTitle, spacer, userInfo, logoutBtn);
+        VBox topBar = UiStyles.header(pageTitle, userInfo, logoutBtn);
+        UiMotion.enter(topBar, 0, false);
 
         // --- Content ---
         VBox content = new VBox(20);
-        content.setPadding(new Insets(25));
+        content.setPadding(new Insets(22));
+        content.setMinWidth(0);
         content.setAlignment(Pos.TOP_LEFT);
 
         Label welcome = new Label("Welcome, " + userText + "!");
         welcome.getStyleClass().add("welcome");
+        welcome.setWrapText(true);
 
         DashboardStats stats;
         try {
@@ -133,46 +135,61 @@ public class DashboardController {
             stats = new DashboardStats(); // fail safe
         }
 
-        FlowPane cards = new FlowPane(15, 15);
-        cards.getChildren().addAll(
+        VBox today = statCard("Today's Appointments", String.valueOf(stats.getTodaysAppointments()));
+        today.getStyleClass().addAll("stat-featured", "stat-clinical");
+        VBox revenue = statCard("Today's Revenue (Paid)", String.format("%,.2f", stats.getTodaysRevenue()));
+        revenue.getStyleClass().addAll("stat-featured", "stat-finance");
+        GridPane featured = UiStyles.responsiveGrid(2, 300, today, revenue);
+
+        GridPane cards = UiStyles.responsiveGrid(3, 210,
                 statCard("Total Patients", String.valueOf(stats.getTotalPatients())),
                 statCard("Active Doctors", String.valueOf(stats.getActiveDoctors())),
-                statCard("Today's Appointments", String.valueOf(stats.getTodaysAppointments())),
-                statCard("Scheduled Appointments", String.valueOf(stats.getPendingAppointments())),
+                statCard("Pending Appointments", String.valueOf(stats.getPendingAppointments())),
                 statCard("Completed Appointments", String.valueOf(stats.getCompletedAppointments())),
                 statCard("Unpaid Bills", String.valueOf(stats.getUnpaidBills())),
-                statCard("Partially Paid Bills", String.valueOf(stats.getPartiallyPaidBills())),
-                statCard("Today's Revenue (Paid)", String.format("%,.2f", stats.getTodaysRevenue()))
-        );
+                statCard("Partially Paid Bills", String.valueOf(stats.getPartiallyPaidBills())));
+        UiMotion.enter(today, 0, false);
+        UiMotion.enter(revenue, 40, false);
+        for (int i = 0; i < cards.getChildren().size(); i++) {
+            UiMotion.enter(cards.getChildren().get(i), (i + 2) * 40, false);
+        }
+        Label overview = new Label("Care & operations");
+        overview.getStyleClass().add("section-title");
 
-        Label quickTitle = new Label("Quick Actions");
+        Label quickTitle = new Label("Continue your workflow");
         quickTitle.getStyleClass().add("section-title");
         FlowPane quick = new FlowPane(10, 10);
-        addQuickAction(quick, "+ Add Patient", isAdmin || isReceptionist, onOpenPatients);
-        addQuickAction(quick, "New Appointment", isAdmin || isReceptionist, onOpenAppointments);
-        addQuickAction(quick, "Medical Record", isAdmin || isReceptionist, onOpenMedicalRecords);
-        addQuickAction(quick, "Prescription", isAdmin || isDoctor, onOpenPrescriptions);
-        addQuickAction(quick, "Billing", isAdmin || isReceptionist, onOpenBilling);
-        addQuickAction(quick, "Reports", true, onOpenReports);
+        addQuickAction(quick, isDoctor ? "Patients" : "+ Add Patient", isStaff, onOpenPatients);
+        addQuickAction(quick, isDoctor ? "Appointments" : "New Appointment", isStaff, onOpenAppointments);
+        addQuickAction(quick, "Medical Record", isStaff, onOpenMedicalRecords);
+        addQuickAction(quick, "Prescription", isStaff, onOpenPrescriptions);
+        addQuickAction(quick, "Billing", isAdminOrReceptionist, onOpenBilling);
+        addQuickAction(quick, "Reports", isStaff, onOpenReports);
         addQuickAction(quick, "User Management", isAdmin, onOpenUserManagement);
         addQuickAction(quick, "Departments", isAdmin, onOpenDepartments);
 
-        content.getChildren().addAll(welcome, cards, quickTitle, quick);
+        VBox quickPanel = new VBox(12, quickTitle,
+                UiStyles.hint("Open a module to continue your work."), quick);
+        quickPanel.getStyleClass().addAll("card", "quick-actions");
+        VBox introduction = new VBox(6, welcome,
+                UiStyles.hint("YOUR HOSPITAL AT A GLANCE"));
+        content.getChildren().addAll(introduction, featured, overview, cards, quickPanel);
 
         BorderPane inner = new BorderPane();
         inner.setTop(topBar);
-        inner.setCenter(content);
-        root.setLeft(sidebar);
+        inner.setCenter(UiStyles.scroll(content));
+        root.setLeft(UiStyles.sidebar(sidebar));
         root.setCenter(inner);
 
-        Scene scene = new Scene(root, 1200, 750);
+        Scene scene = new Scene(root);
         applyCss(scene);
         return scene;
     }
 
-    private Node navButtonIf(String label, boolean enabled, Runnable action) {
-        if (!enabled) return navLabel(label, false, true);
+    private Node navButtonIf(String label, boolean visible, Runnable action) {
         Button btn = new Button(label);
+        btn.setVisible(visible);
+        btn.setManaged(visible);
         btn.getStyleClass().addAll("nav-item", "nav-button");
         btn.setMaxWidth(Double.MAX_VALUE);
         VBox.setMargin(btn, new Insets(2, 0, 2, 0));
@@ -183,7 +200,7 @@ public class DashboardController {
     private void addQuickAction(FlowPane p, String label, boolean enabled, Runnable action) {
         if (!enabled) return;
         Button b = new Button(label);
-        b.getStyleClass().add("secondary-button");
+        b.getStyleClass().addAll("secondary-button", "quick-action");
         b.setPadding(new Insets(10, 15, 10, 15));
         b.setOnAction(e -> { if (action != null) action.run(); });
         p.getChildren().add(b);
@@ -191,32 +208,31 @@ public class DashboardController {
 
     private VBox statCard(String title, String value) {
         VBox card = new VBox(6);
-        card.setPadding(new Insets(18, 20, 18, 20));
-        card.setMinWidth(180);
-        card.setPrefWidth(200);
-        card.getStyleClass().add("card");
+        card.setMinWidth(0);
+        card.getStyleClass().addAll("card", "stat-card");
         Label t = new Label(title);
-        t.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12px;");
+        t.getStyleClass().add("stat-label");
+        t.setMinHeight(32);
+        t.setWrapText(true);
+        t.setMinWidth(0);
+        t.setMaxWidth(Double.MAX_VALUE);
         Label v = new Label(value);
-        v.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #1f3a8a;");
-        card.getChildren().addAll(t, v);
+        v.getStyleClass().add("stat-value");
+        v.setWrapText(true);
+        v.setMinWidth(0);
+        v.setMaxWidth(Double.MAX_VALUE);
+        v.setAccessibleText(title + ": " + value);
+        if ("0".equals(value) || "0.00".equals(value) || "0,00".equals(value)) {
+            v.getStyleClass().add("stat-zero");
+        }
+        Label category = new Label(title.contains("Revenue") || title.contains("Bills") ? "FINANCE" : "PATIENT CARE");
+        category.getStyleClass().add("metric-category");
+        card.getChildren().addAll(category, t, v);
+        UiMotion.elevate(card, true);
         return card;
     }
 
-    private Node navLabel(String label, boolean active, boolean disabled) {
-        Label item = new Label(label);
-        item.setMaxWidth(Double.MAX_VALUE);
-        item.getStyleClass().add("nav-item");
-        if (active) item.getStyleClass().add("nav-item-active");
-        if (disabled) { item.setDisable(true); item.getStyleClass().add("nav-item-disabled"); }
-        VBox.setMargin(item, new Insets(2, 0, 2, 0));
-        return item;
-    }
-
     private void applyCss(Scene scene) {
-        try {
-            String css = getClass().getResource("/com/hospital/css/styles.css").toExternalForm();
-            scene.getStylesheets().add(css);
-        } catch (Exception ignore) {}
+        UiStyles.apply(scene);
     }
 }
