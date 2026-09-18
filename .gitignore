@@ -30,6 +30,7 @@ data/hospital.db
 data/*.db
 data/*.db-shm
 data/*.db-wal
+data/*.db-journal
 
 # Keep the data directory itself tracked so first-run doesn't fail
 !data/.gitkeep
