@@ -7,6 +7,7 @@ import com.hospital.service.AuthService;
 import com.hospital.service.ReportService;
 import com.hospital.service.Session;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiMotion;
 import com.hospital.util.UiStyles;
 
 import javafx.geometry.Insets;
@@ -18,6 +19,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
 /**
@@ -132,19 +134,28 @@ public class DashboardController {
             stats = new DashboardStats(); // fail safe
         }
 
-        FlowPane cards = new FlowPane(15, 15);
-        cards.getChildren().addAll(
+        VBox today = statCard("Today's Appointments", String.valueOf(stats.getTodaysAppointments()));
+        today.getStyleClass().addAll("stat-featured", "stat-clinical");
+        VBox revenue = statCard("Today's Revenue (Paid)", String.format("%,.2f", stats.getTodaysRevenue()));
+        revenue.getStyleClass().addAll("stat-featured", "stat-finance");
+        GridPane featured = UiStyles.responsiveGrid(2, 300, today, revenue);
+
+        GridPane cards = UiStyles.responsiveGrid(3, 210,
                 statCard("Total Patients", String.valueOf(stats.getTotalPatients())),
                 statCard("Active Doctors", String.valueOf(stats.getActiveDoctors())),
-                statCard("Today's Appointments", String.valueOf(stats.getTodaysAppointments())),
                 statCard("Pending Appointments", String.valueOf(stats.getPendingAppointments())),
                 statCard("Completed Appointments", String.valueOf(stats.getCompletedAppointments())),
                 statCard("Unpaid Bills", String.valueOf(stats.getUnpaidBills())),
-                statCard("Partially Paid Bills", String.valueOf(stats.getPartiallyPaidBills())),
-                statCard("Today's Revenue (Paid)", String.format("%,.2f", stats.getTodaysRevenue()))
-        );
+                statCard("Partially Paid Bills", String.valueOf(stats.getPartiallyPaidBills())));
+        UiMotion.enter(today, 0, false);
+        UiMotion.enter(revenue, 25, false);
+        for (int i = 0; i < cards.getChildren().size(); i++) {
+            UiMotion.enter(cards.getChildren().get(i), i * 10, false);
+        }
+        Label overview = new Label("Care & operations");
+        overview.getStyleClass().add("section-title");
 
-        Label quickTitle = new Label("Quick Actions");
+        Label quickTitle = new Label("Continue your workflow");
         quickTitle.getStyleClass().add("section-title");
         FlowPane quick = new FlowPane(10, 10);
         addQuickAction(quick, isDoctor ? "Patients" : "+ Add Patient", isStaff, onOpenPatients);
@@ -160,8 +171,8 @@ public class DashboardController {
                 UiStyles.hint("Open a module to continue your work."), quick);
         quickPanel.getStyleClass().addAll("card", "quick-actions");
         VBox introduction = new VBox(6, welcome,
-                UiStyles.hint("Patient care, appointments and daily operations."));
-        content.getChildren().addAll(introduction, cards, quickPanel);
+                UiStyles.hint("YOUR HOSPITAL AT A GLANCE"));
+        content.getChildren().addAll(introduction, featured, overview, cards, quickPanel);
 
         BorderPane inner = new BorderPane();
         inner.setTop(topBar);
@@ -188,7 +199,7 @@ public class DashboardController {
     private void addQuickAction(FlowPane p, String label, boolean enabled, Runnable action) {
         if (!enabled) return;
         Button b = new Button(label);
-        b.getStyleClass().add("secondary-button");
+        b.getStyleClass().addAll("secondary-button", "quick-action");
         b.setPadding(new Insets(10, 15, 10, 15));
         b.setOnAction(e -> { if (action != null) action.run(); });
         p.getChildren().add(b);
@@ -196,21 +207,27 @@ public class DashboardController {
 
     private VBox statCard(String title, String value) {
         VBox card = new VBox(6);
-        card.setMinWidth(180);
-        card.setPrefWidth(210);
+        card.setMinWidth(0);
         card.getStyleClass().addAll("card", "stat-card");
         Label t = new Label(title);
         t.getStyleClass().add("stat-label");
         t.setMinHeight(32);
         t.setWrapText(true);
+        t.setMinWidth(0);
+        t.setMaxWidth(Double.MAX_VALUE);
         Label v = new Label(value);
         v.getStyleClass().add("stat-value");
         v.setWrapText(true);
+        v.setMinWidth(0);
+        v.setMaxWidth(Double.MAX_VALUE);
         v.setAccessibleText(title + ": " + value);
         if ("0".equals(value) || "0.00".equals(value) || "0,00".equals(value)) {
             v.getStyleClass().add("stat-zero");
         }
-        card.getChildren().addAll(t, v);
+        Label category = new Label(title.contains("Revenue") || title.contains("Bills") ? "FINANCE" : "PATIENT CARE");
+        category.getStyleClass().add("metric-category");
+        card.getChildren().addAll(category, t, v);
+        UiMotion.elevate(card, true);
         return card;
     }
 

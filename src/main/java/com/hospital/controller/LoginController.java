@@ -4,6 +4,7 @@ import com.hospital.exception.AuthenticationException;
 import com.hospital.model.User;
 import com.hospital.service.AuthService;
 import com.hospital.util.SceneManager;
+import com.hospital.util.UiMotion;
 import com.hospital.util.UiStyles;
 
 import javafx.geometry.Insets;
@@ -119,7 +120,9 @@ public class LoginController {
 
         Label footer = new Label("Authorized staff access");
         footer.getStyleClass().add("login-footer");
-        card.getChildren().addAll(eyebrow, title, subtitle, form, errorLabel, loginBtn, footer);
+        card.getChildren().addAll(UiStyles.medicalMark(), eyebrow, title, subtitle, form, errorLabel, loginBtn, footer);
+        UiMotion.elevate(card, false);
+        UiMotion.enter(card, 0, false);
         root.getChildren().add(card);
 
         ScrollPane viewport = UiStyles.scroll(root);

@@ -3,11 +3,11 @@
  * Keep screen-specific rules below the common controls and surfaces.
  */
 .root {
-    -app-bg: #f3f6f7;
+    -app-bg: #f1f5f5;
     -surface: #ffffff;
     -ink: #20343e;
     -muted: #566b76;
-    -line: #d6e0e4;
+    -line: #dae4e6;
     -accent: #176b75;
     -accent-hover: #125862;
     -accent-soft: #e8f3f3;
@@ -24,7 +24,7 @@
 }
 .label { -fx-text-fill: -ink; }
 .title, .welcome { -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: -ink; }
-.page-title { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: -ink; }
+.page-title { -fx-font-size: 25px; -fx-font-weight: bold; -fx-text-fill: -ink; }
 .section-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: -ink; }
 .subtitle, .info-text { -fx-text-fill: -muted; -fx-wrap-text: true; }
 .hint { -fx-font-size: 12px; -fx-text-fill: -muted; -fx-wrap-text: true; }
@@ -33,7 +33,7 @@
 .form-grid > .label { -fx-padding: 7 0 0 0; }
 
 /* Surfaces and spacing: modest corners, no decorative shadows. */
-.card { -fx-background-color: -surface; -fx-border-color: -line; -fx-border-radius: 6; -fx-background-radius: 6; }
+.card { -fx-background-color: -surface; -fx-border-color: -line; -fx-border-radius: 7; -fx-background-radius: 7; }
 .form-panel { -fx-spacing: 14; }
 .workspace { -fx-background-color: transparent; -fx-padding: 16; -fx-box-border: transparent; }
 .workspace > .split-pane-divider { -fx-background-color: transparent; -fx-padding: 0 5 0 5; }
@@ -72,7 +72,6 @@
 .text-field:hover, .combo-box:hover, .date-picker:hover, .text-area:hover { -fx-border-color: #9db5be; }
 .text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused {
     -fx-border-color: -accent;
-    -fx-effect: dropshadow(gaussian, #176b7533, 3, 0.2, 0, 0);
 }
 .text-field:disabled, .password-field:disabled, .text-area:disabled,
 .combo-box:disabled, .date-picker:disabled, .check-box:disabled {
@@ -108,64 +107,86 @@
     -fx-cursor: hand;
     -fx-font-weight: bold;
 }
-.button:hover { -fx-background-color: #e0e8eb; }
-.button:pressed { -fx-background-color: #ccdbe0; }
 .secondary-button { -fx-background-color: -surface; -fx-border-color: -line; -fx-text-fill: -ink; }
-.secondary-button:hover { -fx-background-color: #f1f6f7; -fx-border-color: #9db5be; }
-.secondary-button:pressed { -fx-background-color: #e1ecef; }
 .primary-button { -fx-background-color: -accent; -fx-border-color: -accent; -fx-text-fill: white; }
-.primary-button:hover { -fx-background-color: -accent-hover; -fx-border-color: -accent-hover; }
-.primary-button:pressed { -fx-background-color: #0d4851; -fx-border-color: #0d4851; }
 .danger-button { -fx-background-color: #fff5f5; -fx-border-color: #e0b8bc; -fx-text-fill: -danger; }
-.danger-button:hover { -fx-background-color: #fbe5e7; -fx-border-color: -danger; }
-.danger-button:pressed { -fx-background-color: #f3cdd1; }
 .button:focused { -fx-border-color: -accent; -fx-border-insets: -3; -fx-border-width: 2; }
 .primary-button:focused { -fx-border-color: #104d56; }
 .danger-button:focused { -fx-border-color: -danger; }
-.button:disabled { -fx-opacity: 0.55; -fx-cursor: default; -fx-effect: null; }
+.button:disabled { -fx-opacity: 0.55; -fx-cursor: default; }
+/* UiMotion interpolates desaturation/brightness on application buttons. */
+.motion-button:disabled { -fx-opacity: 1; }
 
-/* Shell — a quiet clinical navigation rail rather than a web dashboard. */
-.sidebar, .sidebar-scroll, .sidebar-scroll > .viewport { -fx-background-color: #e9f0f2; }
-.sidebar { -fx-border-color: -line; -fx-border-width: 0 1 0 0; }
-.sidebar-title { -fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: -accent-hover; -fx-padding: 4 0 12 0; }
-.sidebar .separator .line { -fx-border-color: #ccdade; }
+/* A compact, deep-teal navigation rail with a separate staff-session area.
+ * Group visibility is bound to existing navigation node visibility, not roles.
+ */
+.sidebar-rail, .sidebar, .sidebar-scroll, .sidebar-scroll > .viewport { -fx-background-color: #173d45; }
+.sidebar { -fx-padding: 8 14; -fx-border-width: 0; }
+.sidebar-brand { -fx-padding: 25 16 20 16; -fx-border-color: #30525a; -fx-border-width: 0 0 1 0; }
+.sidebar-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #f1fafa; -fx-padding: 0; }
+.brand-caption { -fx-text-fill: #a2c2c8; -fx-font-size: 11px; -fx-font-weight: bold; }
+.medical-mark { -fx-background-color: #e1f1f1; -fx-background-radius: 7; }
+.medical-cross { -fx-fill: -accent; }
+.sidebar-brand .medical-mark { -fx-background-color: #2d606a; }
+.sidebar-brand .medical-cross { -fx-fill: #c3ecea; }
+.nav-group { -fx-padding: 12 0 2 0; }
+.nav-group-title { -fx-text-fill: #98b9c1; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 0 10; }
 .nav-item {
-    -fx-text-fill: #3c5662;
+    -fx-text-fill: #d3e4e8;
     -fx-font-size: 13px;
     -fx-font-weight: normal;
     -fx-padding: 9 11;
-    -fx-min-height: 37;
-    -fx-background-radius: 4;
-    -fx-border-radius: 4;
+    -fx-min-height: 38;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
 }
-.nav-button { -fx-background-color: transparent; -fx-border-color: transparent; -fx-alignment: CENTER_LEFT; }
-.nav-button:hover { -fx-background-color: #dbe7eb; -fx-text-fill: -accent-hover; }
-.nav-button:pressed { -fx-background-color: #ccdee3; }
-.nav-item-active, .nav-button.nav-item-active {
-    -fx-background-color: -accent;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-}
-.nav-button:focused { -fx-border-color: -accent; -fx-border-insets: 0; -fx-border-width: 1; }
+/* Opaque rail-colored buttons allow smooth tone interpolation on hover. */
+.nav-button { -fx-background-color: #173d45; -fx-border-color: transparent; -fx-alignment: CENTER_LEFT; }
+.nav-item-active, .nav-button.nav-item-active { -fx-background-color: #2b5e68; -fx-text-fill: white; -fx-font-weight: bold; }
+.nav-indicator { -fx-fill: #91d8d5; }
+.nav-button:focused { -fx-border-color: #91d8d5; -fx-border-insets: 0; -fx-border-width: 1; }
 .nav-item-disabled { -fx-opacity: 0.55; -fx-cursor: default; }
-.topbar { -fx-padding: 16 22; -fx-background-color: -surface; -fx-border-color: -line; -fx-border-width: 0 0 1 0; }
+.sidebar-profile { -fx-padding: 18; -fx-background-color: #12333b; -fx-border-color: #30525a; -fx-border-width: 1 0 0 0; }
+.sidebar-profile .user-info { -fx-font-size: 12px; -fx-text-fill: #dae9ed; -fx-line-spacing: 3; }
+.sidebar-profile .sidebar-logout { -fx-background-color: #204952; -fx-border-color: #48717b; -fx-text-fill: #f0f8f9; -fx-alignment: CENTER_LEFT; }
+.sidebar-profile .sidebar-logout:focused { -fx-border-color: #91d8d5; }
+.topbar { -fx-padding: 22 26; -fx-background-color: -surface; -fx-border-color: -line; -fx-border-width: 0 0 1 0; }
 .user-info { -fx-font-size: 12px; -fx-text-fill: -muted; }
+.topbar .hint { -fx-font-size: 13px; }
 
 /* Sign-in screen: restrained branding, aligned fields and full-width action. */
-.login-root { -fx-background-color: #eaf1f3; }
-.login-card { -fx-padding: 32; -fx-spacing: 16; -fx-border-color: #c9dade; }
+.login-root { -fx-background-color: #e7eff0; }
+.login-card { -fx-padding: 30 34; -fx-spacing: 14; -fx-border-color: #c8dcdf; -fx-border-width: 3 1 1 1; -fx-border-radius: 8; -fx-background-radius: 8; }
 .login-eyebrow { -fx-text-fill: -accent; -fx-font-size: 12px; -fx-font-weight: bold; }
 .login-card .title { -fx-font-size: 27px; }
 .login-card .primary-button { -fx-min-height: 42; }
 .login-card .text-field { -fx-min-height: 40; }
 .login-footer { -fx-font-size: 12px; -fx-text-fill: -muted; -fx-padding: 8 0 0 0; }
 
-/* Dashboard — all eight metrics, with one clear typographic hierarchy. */
-.stat-card { -fx-padding: 18; -fx-border-color: -line; -fx-spacing: 10; }
-.stat-label { -fx-font-size: 12px; -fx-text-fill: -muted; -fx-wrap-text: true; }
-.stat-value { -fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: -accent-hover; }
-.stat-value.stat-zero { -fx-text-fill: -muted; }
-.quick-actions { -fx-padding: 18; -fx-spacing: 12; }
+/* Dashboard composition: two feature metrics, then six compact metrics. */
+.welcome { -fx-font-size: 20px; }
+.stat-card { -fx-padding: 18 20; -fx-border-color: -line; -fx-spacing: 6; }
+.metric-category { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #58727d; -fx-padding: 0 0 4 0; }
+.stat-label { -fx-font-size: 13px; -fx-text-fill: -muted; -fx-wrap-text: true; }
+.stat-value { -fx-font-size: 31px; -fx-font-weight: bold; -fx-text-fill: -accent-hover; }
+.stat-value.stat-zero { -fx-text-fill: #617c87; }
+.stat-featured { -fx-padding: 22 24; -fx-spacing: 9; -fx-min-height: 172; }
+.stat-featured .stat-value { -fx-font-size: 42px; }
+.stat-clinical { -fx-background-color: #1d5964; -fx-border-color: #1d5964; }
+.stat-clinical .metric-category { -fx-text-fill: #a3ced4; }
+.stat-clinical .stat-label { -fx-text-fill: #d9edef; }
+.stat-clinical .stat-value { -fx-text-fill: white; }
+.stat-finance { -fx-border-color: #73acae -line -line -line; -fx-border-width: 3 1 1 1; }
+.quick-actions { -fx-padding: 22; -fx-spacing: 12; -fx-background-color: #f8fbfb; }
+.quick-action { -fx-min-width: 145; -fx-border-color: #bed3d8; -fx-text-fill: -accent-hover; }
+
+/* Form sections keep the original fields, order and validation intact. */
+.form-panel { -fx-border-color: #c4d9dd; -fx-border-width: 3 1 1 1; }
+.form-grid > .form-section { -fx-padding: 15 0 7 0; -fx-border-color: transparent transparent -line transparent; -fx-border-width: 0 0 1 0; -fx-text-fill: -accent; -fx-font-size: 12px; }
+.form-grid .text-field, .form-grid .combo-box, .form-grid .date-picker { -fx-background-color: #f8fafb; }
+.form-grid .text-field:focused, .form-grid .combo-box:focused, .form-grid .date-picker:focused { -fx-background-color: white; }
+.form-panel > .flow-pane { -fx-padding: 10 0 0 0; }
+.record-list { -fx-border-color: #dce5e8; }
 
 /* Table styling is shared by lists, editable line items and report results. */
 .table-view { -fx-background-color: -surface; -fx-border-color: -line; -fx-border-radius: 4; -fx-padding: 0; }
@@ -173,29 +194,30 @@
 .table-view .column-header-background { -fx-background-color: #edf3f5; }
 .table-view .column-header, .table-view .filler {
     -fx-background-color: transparent;
-    -fx-size: 38;
+    -fx-size: 40;
     -fx-border-color: transparent -line -line transparent;
     -fx-border-width: 0 1 1 0;
 }
 .table-view .column-header .label { -fx-alignment: CENTER_LEFT; -fx-padding: 0 10; -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #3c5662; }
-.table-row-cell { -fx-background-color: -surface; -fx-cell-size: 38; -fx-border-width: 0; }
+.table-row-cell { -fx-background-color: -surface; -fx-cell-size: 42; -fx-border-width: 0; }
 .table-row-cell:odd { -fx-background-color: #f8fafb; }
 .table-row-cell:filled:hover { -fx-background-color: #edf5f6; }
-.table-row-cell:filled:selected { -fx-background-color: #dceef0; }
+.table-row-cell:filled:selected { -fx-background-color: #d5ebed; }
 .table-cell { -fx-padding: 9 10; -fx-alignment: CENTER_LEFT; -fx-text-fill: -ink; -fx-border-color: transparent transparent #edf1f3 transparent; -fx-font-size: 12px; }
 .table-row-cell:filled:selected .table-cell { -fx-text-fill: #123e48; }
 .table-cell:focused { -fx-border-color: -accent; }
 .table-row-cell:empty, .table-row-cell:empty .table-cell { -fx-background-color: -surface; -fx-border-color: transparent; }
-.table-view .placeholder .label { -fx-text-fill: -muted; -fx-padding: 24; -fx-wrap-text: true; -fx-text-alignment: center; }
 .table-cell.numeric-column, .numeric-column .label { -fx-alignment: CENTER_RIGHT; }
-.table-cell.status-positive { -fx-text-fill: #236345; -fx-font-weight: bold; }
-.table-cell.status-pending { -fx-text-fill: #805819; -fx-font-weight: bold; }
-.table-cell.status-negative { -fx-text-fill: #9d3942; -fx-font-weight: bold; }
-.table-cell.status-neutral { -fx-text-fill: #5a6873; -fx-font-weight: bold; }
-.table-view .table-row-cell:selected .status-positive { -fx-text-fill: #1c553a; }
-.table-view .table-row-cell:selected .status-pending { -fx-text-fill: #67440c; }
-.table-view .table-row-cell:selected .status-negative { -fx-text-fill: #882b35; }
-.table-view .table-row-cell:selected .status-neutral { -fx-text-fill: #425563; }
+/* Actual reusable Label graphics, not colored text on a whole table cell. */
+.status-chip { -fx-padding: 4 9; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold; }
+.status-chip.status-positive { -fx-background-color: #e0f1e7; -fx-text-fill: #255f43; }
+.status-chip.status-pending { -fx-background-color: #f8efd9; -fx-text-fill: #795617; }
+.status-chip.status-negative { -fx-background-color: #f8e5e7; -fx-text-fill: #943441; }
+.status-chip.status-neutral { -fx-background-color: #e9eef1; -fx-text-fill: #4c6370; }
+.empty-state { -fx-padding: 28; }
+.empty-state .empty-title { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -ink; -fx-text-alignment: left; }
+.empty-state .hint { -fx-text-alignment: left; -fx-font-size: 12px; }
+.empty-state .medical-mark { -fx-background-color: #edf4f5; }
 
 /* Messages keep their text and icon-free meaning, not just a colored border. */
 .error, .success { -fx-padding: 10 12; -fx-background-radius: 4; -fx-border-radius: 4; -fx-wrap-text: true; }
@@ -203,16 +225,32 @@
 .success { -fx-text-fill: #246044; -fx-background-color: #eef8f1; -fx-border-color: #bfdfca; }
 
 /* Reports and billing summary strips. */
-.filter-panel { -fx-padding: 16; -fx-spacing: 12; }
+.filter-panel { -fx-padding: 20; -fx-spacing: 14; -fx-border-color: #bdd4da; -fx-border-width: 3 1 1 1; }
+.filter-section { -fx-padding: 10 0; }
+.filter-section-title { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: -accent; }
+.filter-actions { -fx-alignment: CENTER_RIGHT; -fx-padding: 8 0 0 0; }
+.report-results { -fx-padding: 20; }
 .filter-toolbar { -fx-hgap: 12; -fx-vgap: 12; -fx-alignment: BOTTOM_LEFT; }
 .summary-strip { -fx-background-color: -accent-soft; -fx-padding: 12 14; -fx-background-radius: 4; -fx-text-fill: -accent-hover; -fx-font-weight: bold; }
 .billing-total { -fx-font-weight: bold; -fx-font-size: 17px; -fx-text-fill: -accent-hover; }
 
-/* Alerts have a separate scene: UiStyles.dialog attaches this stylesheet. */
-.dialog-pane { -fx-background-color: -surface; -fx-padding: 20; }
-.dialog-pane > .header-panel { -fx-background-color: -surface; -fx-padding: 0 0 16 0; }
-.dialog-pane > .header-panel .label { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -ink; -fx-wrap-text: true; }
-.dialog-pane > .content.label { -fx-padding: 8 0 16 0; -fx-wrap-text: true; -fx-line-spacing: 4; }
-.dialog-pane .button-bar { -fx-padding: 16 0 0 0; }
-.dialog-details { -fx-padding: 8 4; }
-.dialog-details .label { -fx-line-spacing: 5; -fx-text-fill: -ink; }
+/* Dialogs retain native window controls and their original button results.
+ * Inset surfaces and a custom header replace the default large alert graphic.
+ */
+.dialog-pane {
+    -fx-background-color: #eaf0f2, -surface;
+    -fx-background-insets: 0, 8;
+    -fx-background-radius: 0, 8;
+    -fx-border-color: #d4e0e4;
+    -fx-border-insets: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 28;
+}
+.dialog-header { -fx-padding: 0 0 20 0; -fx-border-color: -line; -fx-border-width: 0 0 1 0; }
+.dialog-title { -fx-font-size: 21px; -fx-font-weight: bold; -fx-text-fill: -ink; }
+.dialog-eyebrow { -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -accent; }
+.dialog-header-danger .dialog-eyebrow { -fx-text-fill: -danger; }
+.dialog-pane > .content.label { -fx-padding: 20 0; -fx-wrap-text: true; -fx-line-spacing: 5; }
+.dialog-pane .button-bar { -fx-padding: 18 0 0 0; }
+.dialog-details { -fx-padding: 18 4; }
+.dialog-details .label { -fx-line-spacing: 6; -fx-text-fill: -ink; }

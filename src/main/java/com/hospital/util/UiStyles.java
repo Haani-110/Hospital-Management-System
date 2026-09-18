@@ -1,5 +1,7 @@
 package com.hospital.util;
 
+import javafx.beans.Observable;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -11,6 +13,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Control;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableCell;
@@ -20,13 +23,18 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.TreeMap;
 
 /**
  * Shared presentation only: stylesheet, sizing, labels and cell decoration.
@@ -35,12 +43,34 @@ import java.util.Locale;
 public final class UiStyles {
     private static final URL CSS = UiStyles.class.getResource("/com/hospital/css/styles.css");
 
+    private static final Object STATUS_BADGE = new Object();
+    private static final Object EMPTY_STATE = new Object();
+
     private UiStyles() { }
 
     public static void apply(Scene scene) {
         if (CSS != null && !scene.getStylesheets().contains(CSS.toExternalForm())) {
             scene.getStylesheets().add(CSS.toExternalForm());
         }
+        // Move the existing presentation nodes, not their callbacks or auth state.
+        Node profile = scene.getRoot().lookup("#staff-profile");
+        Node user = scene.getRoot().lookup(".user-info");
+        if (profile instanceof VBox footer && user != null) {
+            moveTo(user, footer);
+            Node logout = scene.getRoot().lookup("#portal-logout");
+            if (logout instanceof Button button) {
+                moveTo(button, footer);
+                button.setMaxWidth(Double.MAX_VALUE);
+                button.getStyleClass().add("sidebar-logout");
+            }
+        }
+        UiMotion.install(scene.getRoot());
+    }
+
+    private static void moveTo(Node node, Pane target) {
+        if (node.getParent() == target) return;
+        if (node.getParent() instanceof Pane previous) previous.getChildren().remove(node);
+        target.getChildren().add(node);
     }
 
     public static ScrollPane scroll(Node content) {
@@ -51,15 +81,82 @@ public final class UiStyles {
         return scroll;
     }
 
-    public static ScrollPane sidebar(Node content) {
-        ScrollPane scroll = scroll(content);
-        scroll.setFitToHeight(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setMinWidth(224);
-        scroll.setPrefWidth(224);
-        scroll.setMaxWidth(224);
-        scroll.getStyleClass().add("sidebar-scroll");
-        return scroll;
+    public static Node sidebar(Node content) {
+        if (!(content instanceof VBox navigation)) return scroll(content);
+        List<Node> original = new ArrayList<>(navigation.getChildren());
+        navigation.getChildren().clear();
+        Label title = original.stream().filter(n -> n.getStyleClass().contains("sidebar-title"))
+                .map(n -> (Label) n).findFirst().orElse(new Label("Hospital System"));
+        Label subtitle = new Label("CARE & OPERATIONS");
+        subtitle.getStyleClass().add("brand-caption");
+        VBox brandText = new VBox(3, title, subtitle);
+        HBox brand = new HBox(10, medicalMark(), brandText);
+        brand.setAlignment(Pos.CENTER_LEFT);
+        brand.getStyleClass().add("sidebar-brand");
+
+        List<Node> links = original.stream().filter(n -> n.getStyleClass().contains("nav-item")).toList();
+        VBox clinical = new VBox(4);
+        VBox operations = new VBox(4);
+        VBox administration = new VBox(4);
+        for (Node link : links) {
+            String name = link instanceof Labeled labeled ? labeled.getText() : "";
+            if (link instanceof Label active && link.getStyleClass().contains("nav-item-active")) {
+                Rectangle indicator = new Rectangle(3, 18);
+                indicator.setArcWidth(3); indicator.setArcHeight(3);
+                indicator.getStyleClass().add("nav-indicator");
+                active.setGraphic(indicator);
+                active.setGraphicTextGap(10);
+                if (link.isVisible()) UiMotion.indicator(indicator);
+            }
+            switch (name) {
+                case "Departments", "User Management" -> administration.getChildren().add(link);
+                case "Billing", "Reports" -> operations.getChildren().add(link);
+                case "Dashboard" -> navigation.getChildren().add(link);
+                default -> clinical.getChildren().add(link);
+            }
+        }
+        navigation.getChildren().addAll(navGroup("CLINICAL WORKSPACE", clinical),
+                navGroup("OPERATIONS", operations), navGroup("ADMINISTRATION", administration));
+        ScrollPane viewport = scroll(navigation);
+        viewport.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        viewport.getStyleClass().add("sidebar-scroll");
+        VBox.setVgrow(viewport, Priority.ALWAYS);
+        Label session = new Label("STAFF SESSION");
+        session.getStyleClass().add("brand-caption");
+        VBox profile = new VBox(10, session);
+        profile.setId("staff-profile");
+        profile.getStyleClass().add("sidebar-profile");
+        VBox rail = new VBox(brand, viewport, profile);
+        rail.setMinWidth(236); rail.setPrefWidth(236); rail.setMaxWidth(236);
+        rail.getStyleClass().add("sidebar-rail");
+        return rail;
+    }
+
+    /** Group headings follow existing node visibility; no role decisions here. */
+    private static VBox navGroup(String text, VBox links) {
+        Label heading = new Label(text);
+        heading.getStyleClass().add("nav-group-title");
+        VBox group = new VBox(7, heading, links);
+        group.getStyleClass().add("nav-group");
+        Observable[] dependencies = links.getChildren().stream().map(Node::visibleProperty).toArray(Observable[]::new);
+        group.visibleProperty().bind(Bindings.createBooleanBinding(
+                () -> links.getChildren().stream().anyMatch(Node::isVisible), dependencies));
+        group.managedProperty().bind(group.visibleProperty());
+        return group;
+    }
+
+    public static StackPane medicalMark() {
+        Rectangle vertical = new Rectangle(6, 20);
+        Rectangle horizontal = new Rectangle(20, 6);
+        vertical.setArcWidth(2); vertical.setArcHeight(2);
+        horizontal.setArcWidth(2); horizontal.setArcHeight(2);
+        vertical.getStyleClass().add("medical-cross");
+        horizontal.getStyleClass().add("medical-cross");
+        StackPane mark = new StackPane(vertical, horizontal);
+        mark.setMinSize(34, 34); mark.setPrefSize(34, 34); mark.setMaxSize(34, 34);
+        mark.setMouseTransparent(true);
+        mark.getStyleClass().add("medical-mark");
+        return mark;
     }
 
     /** Title and action stay visible; long user names wrap on a separate line. */
@@ -67,20 +164,41 @@ public final class UiStyles {
         title.setWrapText(true);
         title.setMinWidth(0);
         title.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(title, Priority.ALWAYS);
+        VBox identity = new VBox(5, title, hint(description(title.getText())));
+        identity.setMinWidth(0);
+        HBox.setHgrow(identity, Priority.ALWAYS);
         action.setMinWidth(Region.USE_PREF_SIZE);
-        HBox heading = new HBox(16, title, action);
+        if ("Logout".equals(action.getText())) action.setId("portal-logout");
+        HBox heading = new HBox(16, identity, action);
         heading.setAlignment(Pos.CENTER_LEFT);
         userInfo.setWrapText(true);
+        userInfo.setMinWidth(0);
         userInfo.setMaxWidth(Double.MAX_VALUE);
+        // apply() relocates this same label into the rail's staff-session area.
         VBox header = new VBox(6, heading, userInfo);
         header.getStyleClass().add("topbar");
         return header;
     }
 
+    private static String description(String title) {
+        return switch (title) {
+            case "Department Management" -> "Organize hospital departments and specialties.";
+            case "User Management" -> "Manage staff accounts and access assignments.";
+            case "Doctor Management" -> "Clinical team directory and consultation details.";
+            case "Patient Management" -> "Patient registration, contact information and care history.";
+            case "Appointment Management" -> "Patient visits and clinical schedules.";
+            case "Medical Records" -> "Review clinical findings, diagnoses and treatment notes.";
+            case "Prescription Management", "Prescriptions" -> "Review medication plans and prescription details.";
+            case "Billing Management" -> "Manage patient charges, bill items and payment status.";
+            case "Reports" -> "Filter hospital activity and review detailed results.";
+            default -> "Hospital activity and care coordination at a glance.";
+        };
+    }
+
     /** Keep the existing table/form nodes, including their listeners and selection. */
     public static SplitPane workspace(VBox tablePane, VBox formPane) {
         tablePane.setMinWidth(0);
+        tablePane.getStyleClass().add("record-list");
         for (Node node : new ArrayList<>(tablePane.getChildren())) {
             if (node instanceof TableView<?> table) {
                 int index = tablePane.getChildren().indexOf(table);
@@ -119,6 +237,7 @@ public final class UiStyles {
     /** Horizontal scrolling belongs to the table, not its filters or actions. */
     public static ScrollPane tableViewport(TableView<?> table) {
         readableTable(table);
+        emptyState(table);
         ScrollPane viewport = scroll(table);
         viewport.setFitToHeight(true);
         viewport.setPrefViewportHeight(table.getPrefHeight() > 0 ? table.getPrefHeight() : 360);
@@ -177,6 +296,7 @@ public final class UiStyles {
                         .findFirst().ifPresent(label::setLabelFor);
             }
         }
+        formSections(form);
     }
 
     public static VBox field(String text, Control control) {
@@ -201,6 +321,8 @@ public final class UiStyles {
     /** Preserve the status text; color is supplementary, never the only cue. */
     public static void statusCell(TableCell<?, ?> cell, String value) {
         cell.getStyleClass().removeAll("status-positive", "status-pending", "status-negative", "status-neutral");
+        if (cell.getGraphic() == cell.getProperties().get(STATUS_BADGE)) cell.setGraphic(null);
+        cell.setAccessibleText(null);
         if (value == null || value.isBlank()) return;
         String style = switch (value.toUpperCase(Locale.ROOT)) {
             case "ACTIVE", "COMPLETED", "PAID" -> "status-positive";
@@ -209,7 +331,15 @@ public final class UiStyles {
             case "INACTIVE" -> "status-neutral";
             default -> null;
         };
-        if (style != null) cell.getStyleClass().add(style);
+        if (style != null) {
+            Label badge = (Label) cell.getProperties().computeIfAbsent(STATUS_BADGE, key -> new Label());
+            badge.setText(value);
+            badge.getStyleClass().setAll("label", "status-chip", style);
+            badge.setMouseTransparent(true);
+            cell.setText(null);
+            cell.setGraphic(badge);
+            cell.setAccessibleText(value);
+        }
     }
 
     /** Dialogs have their own scene, so they need the stylesheet explicitly. */
@@ -221,6 +351,26 @@ public final class UiStyles {
         pane.setMinWidth(420);
         pane.setPrefWidth(alert.getAlertType() == Alert.AlertType.INFORMATION ? 640 : 500);
         alert.setResizable(true);
+        String kind = destructive ? "CONFIRM ACTION" : switch (alert.getAlertType()) {
+            case ERROR -> "ATTENTION REQUIRED";
+            case WARNING -> "PLEASE REVIEW";
+            case CONFIRMATION -> "CONFIRM DETAILS";
+            default -> "HOSPITAL WORKSPACE";
+        };
+        Label eyebrow = new Label(kind);
+        eyebrow.getStyleClass().add("dialog-eyebrow");
+        Label title = new Label(alert.getHeaderText() == null ? alert.getTitle() : alert.getHeaderText());
+        title.setWrapText(true);
+        title.getStyleClass().add("dialog-title");
+        VBox titleBlock = new VBox(5, eyebrow, title);
+        titleBlock.setMinWidth(0);
+        HBox.setHgrow(titleBlock, Priority.ALWAYS);
+        HBox header = new HBox(14, medicalMark(), titleBlock);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("dialog-header");
+        if (destructive) header.getStyleClass().add("dialog-header-danger");
+        pane.setGraphic(null);
+        pane.setHeader(header);
         for (ButtonType type : pane.getButtonTypes()) {
             Node button = pane.lookupButton(type);
             boolean affirmative = type.getButtonData() == ButtonBar.ButtonData.OK_DONE
@@ -251,5 +401,96 @@ public final class UiStyles {
                 pane.setContent(body);
             }
         }
+        UiMotion.install(pane);
+        UiMotion.enter(pane, 0, true);
     }
+
+    private static void formSections(GridPane form) {
+        TreeMap<Integer, String> sections = new TreeMap<>();
+        List<Node> fields = new ArrayList<>(form.getChildren());
+        for (Node node : fields) {
+            if (!(node instanceof Label label) || label.getLabelFor() == null) continue;
+            String heading = switch (label.getText()) {
+                case "Phone" -> "Contact information";
+                case "Emergency Contact Name" -> "Emergency contact";
+                case "Diagnosis *" -> "Clinical assessment";
+                case "Treatment Notes" -> "Care plan";
+                case "Date *" -> "Visit schedule";
+                case "Password *" -> "Account credentials";
+                case "Role *" -> "Access assignment";
+                case "Consultation Fee *" -> "Consultation";
+                case "Prescription Date *" -> "Prescription details";
+                case "Bill Date *" -> "Billing details";
+                default -> null;
+            };
+            if (heading != null) sections.put(GridPane.getRowIndex(node), heading);
+        }
+        for (Node node : fields) {
+            int row = GridPane.getRowIndex(node) == null ? 0 : GridPane.getRowIndex(node);
+            GridPane.setRowIndex(node, row + sections.headMap(row, true).size());
+        }
+        int offset = 0;
+        for (var section : sections.entrySet()) {
+            Label label = new Label(section.getValue());
+            label.getStyleClass().add("form-section");
+            label.setMaxWidth(Double.MAX_VALUE);
+            form.add(label, 0, section.getKey() + offset++);
+        }
+    }
+
+    /** Same presentation nodes at every width; only row/column placement changes. */
+    public static GridPane responsiveGrid(int columns, double minimumWidth, Node... cards) {
+        GridPane grid = new GridPane();
+        grid.setHgap(14); grid.setVgap(14);
+        grid.setMinWidth(0);
+        grid.getChildren().addAll(cards);
+        Runnable layout = () -> {
+            int count = Math.max(1, Math.min(columns, (int) ((grid.getWidth() + 14) / (minimumWidth + 14))));
+            if (grid.getColumnConstraints().size() == count) return;
+            grid.getColumnConstraints().clear();
+            for (int i = 0; i < count; i++) {
+                ColumnConstraints column = new ColumnConstraints();
+                column.setPercentWidth(100.0 / count);
+                grid.getColumnConstraints().add(column);
+            }
+            for (int i = 0; i < cards.length; i++) {
+                GridPane.setColumnIndex(cards[i], i % count);
+                GridPane.setRowIndex(cards[i], i / count);
+                GridPane.setHgrow(cards[i], Priority.ALWAYS);
+                if (cards[i] instanceof Region region) {
+                    region.setMinWidth(0);
+                    region.setMaxWidth(Double.MAX_VALUE);
+                }
+            }
+        };
+        grid.widthProperty().addListener((obs, old, width) -> layout.run());
+        layout.run();
+        return grid;
+    }
+
+    private static void emptyState(TableView<?> table) {
+        if (table.getProperties().putIfAbsent(EMPTY_STATE, true) != null) return;
+        String title = table.getPlaceholder() instanceof Label label ? label.getText() : "No items to display";
+        String detail = "Try another search or clear the current filters.";
+        if (table.isEditable()) detail = "Line items will appear here when available.";
+        else if (title.contains("departments") || title.contains("users")) detail = "Registered entries will appear in this list.";
+        else if (title.startsWith("Run a report")) {
+            title = "No results to display";
+            detail = "Adjust the filters or choose another report type.";
+        }
+        Label heading = new Label(title);
+        heading.getStyleClass().add("empty-title");
+        heading.setWrapText(true);
+        Label explanation = hint(detail);
+        VBox empty = new VBox(8, medicalMark(), heading, explanation);
+        // Anchor within the initially visible columns, even when a wide table
+        // is inside a horizontal viewport. A centered placeholder could be offscreen.
+        empty.setAlignment(Pos.CENTER_LEFT);
+        empty.setMaxWidth(Double.MAX_VALUE);
+        heading.setMaxWidth(300);
+        explanation.setMaxWidth(300);
+        empty.getStyleClass().add("empty-state");
+        table.setPlaceholder(empty);
+    }
+
 }

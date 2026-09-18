@@ -99,3 +99,78 @@ These checks are pending; do not interpret this list as completed testing.
 - [ ] Split-pane dividers work; no action button or form field becomes permanently clipped.
 - [ ] Tab focus is visible on buttons, fields, selectors, tables and scroll areas.
 - [ ] Inspect console output for JavaFX CSS warnings during all checks.
+
+## Second visual pass — premium presentation
+
+This pass updates only Login, Dashboard and Reports composition, the shared
+presentation helpers, and CSS. Other module controllers pick up the common
+header, grouped rail, form sections, status chips and dialog treatment without
+changes to their callbacks or rules.
+
+### Visual changes
+
+- A deep-teal rail groups the **existing** navigation nodes. Group headings
+  disappear when all of their links are hidden. The same user/role label is moved
+  into the staff-session footer; Dashboard's existing Logout button is moved
+  there too. Other pages retain Back to Dashboard; no new logout route is added.
+- Dashboard retains all eight metric getters. Today's appointments and paid
+  revenue are featured above six supporting metrics and the original quick actions.
+- Headers gain short context descriptions. Form section labels separate related
+  fields without replacing controls or changing their traversal order.
+- Status cells use reusable Label chips, retaining the exact original status text
+  and an accessible text equivalent. Graphics are cleared on empty/non-status cells.
+- Reports separates report/search selection, date range, additional filters,
+  Apply/Clear actions, and the results/summary surface.
+- Empty states give context without creating records, changing filters or making
+  permission decisions. They are left-aligned to remain in the visible portion
+  of wide, horizontally scrollable tables.
+- Dialogs use a custom header and inset surface while retaining native window
+  controls, original text, button types, default/cancel behavior and result checks.
+
+### Motion and effects
+
+`UiMotion` is presentation-only and uses standard JavaFX APIs:
+
+| Interaction | Treatment |
+|---|---|
+| Login and dashboard entrance | 180 ms fade + 200 ms / 6 px slide; card delays capped at 50 ms |
+| Active navigation indicator | 180 ms scale on the small indicator, not the whole link |
+| Buttons / quick actions | 150 ms tone interpolation for hover, pressed and disabled states |
+| Field focus | 150 ms subtle glow |
+| Statistic-card hover | 180 ms light shadow elevation; no card movement |
+| Error/success message appearance | 180 ms fade |
+| Dialog entrance | Fade/slide with a restrained 0.99 → 1 scale over 200 ms |
+
+There are no indefinite animations, fake loaders, table-row animation loops,
+background tasks or new dependencies. In-flight transitions are replaced on fast
+state changes, one-shot entrance listeners detach after showing, and node-detach
+cleanup stops owned transitions. Motion never invokes or replaces an action handler.
+
+**Reduced motion:** start the JVM with `-Dhospital.ui.reduceMotion=true`.
+For example, in a POSIX shell:
+
+```bash
+JAVA_TOOL_OPTIONS="-Dhospital.ui.reduceMotion=true" mvn javafx:run
+```
+
+This skips entrance/indicator/message animation and applies hover, disabled and
+focus states immediately. Static depth and focus visibility remain available.
+
+### Additional local checks — pending
+
+Both `mvn clean test` and `mvn javafx:run` were attempted again in Arena and failed
+with `mvn: command not found`. The 339-test target and JavaFX rendering are still
+**not verified in this environment**.
+
+- [ ] Repeat the complete role matrix and workflow checklist above.
+- [ ] Verify sidebar groups have no empty headings/gaps for Doctor/Receptionist.
+- [ ] Use the staff-session Logout button; confirm its original behavior.
+- [ ] Navigate rapidly during entrances, including leaving Dashboard immediately.
+- [ ] Hover/press/release buttons quickly, including keyboard Space/Enter and disabled actions.
+- [ ] Trigger invalid login and form errors; ensure messages remain readable after animation.
+- [ ] Open/close each dialog quickly; test Escape, Enter, Cancel and the native close button.
+- [ ] Reuse/sort/scroll status cells and switch report types; no stale chips or duplicate text.
+- [ ] Resize the feature/support metric grids and report filter groups across their breakpoints.
+- [ ] Check long names, long detail text, zero/large metric values, empty lists and OS display scaling.
+- [ ] Repeat with reduced motion enabled; nothing should remain transparent or scaled down.
+- [ ] Inspect JavaFX console output for CSS warnings; confirm no continued motion while idle.

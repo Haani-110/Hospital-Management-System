@@ -27,7 +27,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
@@ -193,13 +195,26 @@ public class ReportsController {
 
         fromPicker.setPromptText("YYYY-MM-DD");
         toPicker.setPromptText("YYYY-MM-DD");
-        filterRow.getChildren().addAll(
-                UiStyles.field("From date", fromPicker), UiStyles.field("To date", toPicker),
-                UiStyles.field("Status", statusFilter), UiStyles.field("Active / inactive", activeFilter),
-                UiStyles.field("Department", deptFilter), apply, clear);
+        FlowPane dateRange = new FlowPane(12, 12,
+                UiStyles.field("From date", fromPicker), UiStyles.field("To date", toPicker));
+        dateRange.getStyleClass().add("filter-toolbar");
+        filterRow.getChildren().addAll(UiStyles.field("Status", statusFilter),
+                UiStyles.field("Active / inactive", activeFilter), UiStyles.field("Department", deptFilter));
+        Label rangeTitle = new Label("Date range");
+        rangeTitle.getStyleClass().add("filter-section-title");
+        Label additionalTitle = new Label("Additional filters");
+        additionalTitle.getStyleClass().add("filter-section-title");
+        FlowPane filterActions = new FlowPane(8, 8, apply, clear);
+        filterActions.getStyleClass().add("filter-actions");
         Label filterTitle = new Label("Report filters");
         filterTitle.getStyleClass().add("section-title");
-        VBox filters = new VBox(12, filterTitle, topRow, filterRow);
+        for (Node field : filterRow.getChildren()) ((Region) field).setPrefWidth(150);
+        VBox dates = new VBox(8, rangeTitle, dateRange);
+        VBox additional = new VBox(8, additionalTitle, filterRow);
+        dates.getStyleClass().add("filter-section");
+        additional.getStyleClass().add("filter-section");
+        GridPane sections = UiStyles.responsiveGrid(2, 440, dates, additional);
+        VBox filters = new VBox(12, filterTitle, topRow, sections, filterActions);
         filters.getStyleClass().addAll("card", "filter-panel");
 
         table = new TableView<>();
@@ -219,7 +234,12 @@ public class ReportsController {
         ScrollPane results = UiStyles.tableViewport(table);
         results.setMinHeight(320);
         VBox.setVgrow(results, Priority.ALWAYS);
-        content.getChildren().addAll(filters, results, summaryLabel, messageLabel);
+        Label resultsTitle = new Label("Report results");
+        resultsTitle.getStyleClass().add("section-title");
+        VBox resultsPanel = new VBox(12, resultsTitle, summaryLabel, results);
+        resultsPanel.getStyleClass().addAll("card", "report-results");
+        VBox.setVgrow(resultsPanel, Priority.ALWAYS);
+        content.getChildren().addAll(filters, resultsPanel, messageLabel);
 
         searchField.textProperty().addListener((o, a, b) -> runReport());
         reportType.setOnAction(e -> { onReportTypeChanged(); runReport(); });
