@@ -41,13 +41,13 @@ async function signInStub() {
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   };
-  globalThis.fetch = (() =>
+  globalThis.fetch = () =>
     Promise.resolve(
       new Response(JSON.stringify(profile), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
-    )) as typeof fetch;
+    );
 }
 
 describe('accessibility (axe-core)', () => {

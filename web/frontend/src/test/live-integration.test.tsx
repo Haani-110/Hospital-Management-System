@@ -16,17 +16,34 @@
  * PostgreSQL. No password is stored in this repository — they are read from the
  * environment, and the suite is skipped when they are absent.
  */
+
+
 import { beforeAll, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { configure, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '@/App';
 import { AuthProvider } from '@/providers/auth-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
-import { authApi, reportsApi } from '@/lib/api';
+import { authApi, doctorsApi, patientsApi, reportsApi } from '@/lib/api';
 import { setToken } from '@/lib/api/token-store';
 import type { LoginResponse } from '@/lib/api/types';
 
+declare global {
+  /**
+   * Vitest runs in Node, so `process.env` is available for the opt-in live
+   * flags without pulling Node's type definitions into browser code.
+   */
+  var process: { env: Record<string, string | undefined> };
+}
+
 const apiBaseUrl = process.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api/v1';
+
+/**
+ * These tests hit a real database over HTTP. The development database is a
+ * single-threaded in-process PostgreSQL (PGlite), so a busy run can queue
+ * requests: allow well over the 1s default before an assertion gives up.
+ */
+configure({ asyncUtilTimeout: 15_000 });
 
 /** Seed usernames are public defaults; passwords must come from the environment. */
 const accounts = {
@@ -66,6 +83,8 @@ function renderApp(route: string) {
   );
 }
 
+// Tests inside a file already run in order; the generous async timeout above
+// absorbs queueing when other test files hit the same database in parallel.
 const describeLive = LIVE ? describe : describe.skip;
 
 describeLive(`live API integration (${apiBaseUrl})`, () => {
@@ -126,6 +145,67 @@ describeLive(`live API integration (${apiBaseUrl})`, () => {
 
     // The sidebar hides the restricted link for this role.
     expect(screen.queryByRole('link', { name: 'Billing' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['/', 'Welcome back'],
+    ['/patients', 'Patients'],
+    ['/doctors', 'Doctors'],
+    ['/appointments', 'Appointments'],
+    ['/medical-records', 'Medical records'],
+    ['/prescriptions', 'Prescriptions'],
+    ['/billing', 'Billing'],
+    ['/reports', 'Reports'],
+    ['/users', 'Users'],
+    ['/settings', 'Settings'],
+    ['/laboratory', 'Laboratory'],
+    ['/pharmacy', 'Pharmacy'],
+    ['/admissions', 'Admissions'],
+    ['/no-such-page', 'Page not found'],
+  ])('renders %s without crashing', async (route, heading) => {
+    await signIn(accounts.admin);
+    renderApp(route);
+
+    expect(
+      await screen.findByRole('heading', { name: new RegExp(heading, 'i'), level: 1 }),
+    ).toBeInTheDocument();
+
+    // The error boundary must never take over.
+    expect(screen.queryByText(/something went wrong on this screen/i)).not.toBeInTheDocument();
+  });
+
+  it('renders a patient profile with their real history tabs', async () => {
+    await signIn(accounts.admin);
+    const list = await patientsApi.listPatients({ limit: 1, page: 1 });
+    const patient = list.data[0];
+    if (!patient) {
+      throw new Error('The live database has no patients — run the backend seed first.');
+    }
+
+    renderApp(`/patients/${patient.id}`);
+
+    expect(
+      await screen.findByRole('heading', { name: patient.fullName, level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Appointments' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Billing' })).toBeInTheDocument();
+    expect(screen.getByText(patient.patientCode)).toBeInTheDocument();
+  });
+
+  it('renders a doctor profile with their appointment activity', async () => {
+    await signIn(accounts.admin);
+    const list = await doctorsApi.listDoctors({ limit: 1, page: 1 });
+    const doctor = list.data[0];
+    if (!doctor) {
+      throw new Error('The live database has no doctors — run the backend seed first.');
+    }
+
+    renderApp(`/doctors/${doctor.id}`);
+
+    expect(
+      await screen.findByRole('heading', { name: doctor.fullName, level: 1 }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/appointments in total/i)).toBeInTheDocument();
   });
 
   it('shows an honest foundation screen for a module without endpoints', async () => {

@@ -5,7 +5,7 @@ with JWT authentication and role-based authorization.
 
 This is the first backend milestone. It provides the database foundation, authentication,
 authorization, the module architecture and read APIs for the core hospital domains. It is built to
-be consumed by the future React/Next.js frontend in `web/frontend/` (not implemented yet).
+be consumed by the React frontend in [`web/frontend/`](../frontend/) (implemented — see its README).
 
 Everything in this project runs locally and for free. No cloud service, container runtime or paid
 API is required — only Node.js and a local PostgreSQL server.

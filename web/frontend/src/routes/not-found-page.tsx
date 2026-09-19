@@ -9,6 +9,7 @@ export function NotFoundPage() {
     <div className="py-10">
       <EmptyState
         size="page"
+        titleAs="h1"
         icon={Compass}
         title="Page not found"
         description="The page you were looking for doesn’t exist or has moved."

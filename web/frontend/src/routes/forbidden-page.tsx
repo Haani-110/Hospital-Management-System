@@ -14,6 +14,7 @@ export function ForbiddenPage() {
     <div className="py-10">
       <EmptyState
         size="page"
+        titleAs="h1"
         icon={Lock}
         title="You don't have access to this area"
         description={

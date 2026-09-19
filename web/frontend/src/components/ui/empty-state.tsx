@@ -9,6 +9,11 @@ export interface EmptyStateProps {
   className?: string;
   /** `compact` fits inside a card; `page` fills a content area. */
   size?: 'compact' | 'page';
+  /**
+   * Element used for the title. Page-level empty states should use a heading
+   * so the document outline stays meaningful for screen-reader navigation.
+   */
+  titleAs?: 'p' | 'h1' | 'h2';
 }
 
 /** Empty, unavailable or not-yet-connected state. Never shows fake content. */
@@ -19,6 +24,7 @@ export function EmptyState({
   action,
   className,
   size = 'compact',
+  titleAs: TitleTag = 'p',
 }: EmptyStateProps) {
   return (
     <div
@@ -41,9 +47,15 @@ export function EmptyState({
         </span>
       ) : null}
       <div className="max-w-md">
-        <p className={cn('font-medium text-fg', size === 'page' ? 'text-base' : 'text-sm')}>
+        <TitleTag
+          className={cn(
+            'font-medium text-fg',
+            size === 'page' ? 'text-base' : 'text-sm',
+            TitleTag !== 'p' && 'font-semibold',
+          )}
+        >
           {title}
-        </p>
+        </TitleTag>
         {description ? (
           <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{description}</p>
         ) : null}
