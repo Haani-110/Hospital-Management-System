@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Environment files — never commit real secrets
+.env
+.env.*
+!.env.example
+
+# Generated Prisma client (run `npm run prisma:generate`)
+src/generated/
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,0 +1,284 @@
+// ---------------------------------------------------------------------------
+// Hospital Management System v2.0 — PostgreSQL schema (Prisma 7)
+//
+// Domain reference: the stable v1.0 JavaFX application. This is a fresh
+// relational design for a multi-user web application — it is NOT a copy of the
+// v1 SQLite schema or Java model classes.
+//
+// Prisma 7 notes:
+//   * `output` is required; the client is generated into ../src/generated/prisma
+//   * the datasource URL lives in prisma.config.ts (not in this file)
+//   * a driver adapter (@prisma/adapter-pg) is required at runtime
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+/// Application roles. Mirrors the v1.0 role set.
+enum Role {
+  ADMIN
+  DOCTOR
+  RECEPTIONIST
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+/// Appointment lifecycle (v1.0: SCHEDULED -> COMPLETED | CANCELLED).
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+/// Billing lifecycle (v1.0: UNPAID -> PARTIALLY_PAID -> PAID | CANCELLED).
+enum BillStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Identity & staff
+// ---------------------------------------------------------------------------
+
+/// Staff login account.
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  username     String    @unique @db.VarChar(50)
+  email        String?   @unique @db.VarChar(254)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  role         Role      @default(RECEPTIONIST)
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  /// Optional 1:1 link to a doctor profile (a doctor profile may exist
+  /// without a login account, and an admin/receptionist never has one).
+  doctor Doctor?
+
+  @@index([role])
+  @@index([active])
+  @@map("users")
+}
+
+model Department {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  doctors Doctor[]
+
+  @@map("departments")
+}
+
+/// Doctor profile. Separate from the login account: `userId` is optional.
+model Doctor {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String?  @unique @map("user_id") @db.Uuid
+  departmentId    String   @map("department_id") @db.Uuid
+  fullName        String   @map("full_name") @db.VarChar(120)
+  specialization  String?  @db.VarChar(120)
+  phone           String?  @db.VarChar(30)
+  email           String?  @db.VarChar(254)
+  consultationFee Decimal  @default(0) @map("consultation_fee") @db.Decimal(10, 2)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  department     Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  prescriptions  Prescription[]
+
+  @@index([departmentId])
+  @@index([active])
+  @@map("doctors")
+}
+
+// ---------------------------------------------------------------------------
+// Patients & clinical records
+// ---------------------------------------------------------------------------
+
+/// Patient record. Patients are deactivated rather than deleted.
+model Patient {
+  id                    String   @id @default(uuid()) @db.Uuid
+  patientCode           String   @unique @map("patient_code") @db.VarChar(20)
+  fullName              String   @map("full_name") @db.VarChar(120)
+  dateOfBirth           DateTime @map("date_of_birth") @db.Date
+  gender                Gender
+  phone                 String?  @db.VarChar(30)
+  email                 String?  @db.VarChar(254)
+  address               String?  @db.VarChar(255)
+  emergencyContactName  String?  @map("emergency_contact_name") @db.VarChar(120)
+  emergencyContactPhone String?  @map("emergency_contact_phone") @db.VarChar(30)
+  bloodGroup            String?  @map("blood_group") @db.VarChar(8)
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  prescriptions  Prescription[]
+  bills          Bill[]
+
+  @@index([fullName])
+  @@index([active])
+  @@map("patients")
+}
+
+model Appointment {
+  id          String            @id @default(uuid()) @db.Uuid
+  patientId   String            @map("patient_id") @db.Uuid
+  doctorId    String            @map("doctor_id") @db.Uuid
+  /// Single scheduling timestamp (v1 stored separate date + time columns).
+  scheduledAt DateTime          @map("scheduled_at") @db.Timestamptz(3)
+  status      AppointmentStatus @default(SCHEDULED)
+  reason      String?           @db.VarChar(255)
+  notes       String?           @db.VarChar(1000)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor        Doctor         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  medicalRecord MedicalRecord?
+  bills         Bill[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([scheduledAt])
+  @@index([status])
+  /// Supports the doctor double-booking conflict check performed in the
+  /// service layer (a hard unique constraint cannot express "unless cancelled").
+  @@index([doctorId, scheduledAt])
+  @@map("appointments")
+}
+
+/// At most one medical record per completed appointment.
+model MedicalRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  appointmentId  String   @unique @map("appointment_id") @db.Uuid
+  patientId      String   @map("patient_id") @db.Uuid
+  doctorId       String   @map("doctor_id") @db.Uuid
+  diagnosis      String   @db.VarChar(1000)
+  symptoms       String?  @db.VarChar(1000)
+  examination    String?  @db.VarChar(1000)
+  treatmentNotes String?  @map("treatment_notes") @db.VarChar(2000)
+  recordDate     DateTime @map("record_date") @db.Date
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  appointment  Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  prescription Prescription?
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([recordDate])
+  @@map("medical_records")
+}
+
+/// At most one prescription per medical record.
+model Prescription {
+  id               String   @id @default(uuid()) @db.Uuid
+  medicalRecordId  String   @unique @map("medical_record_id") @db.Uuid
+  patientId        String   @map("patient_id") @db.Uuid
+  doctorId         String   @map("doctor_id") @db.Uuid
+  prescriptionDate DateTime @map("prescription_date") @db.Date
+  notes            String?  @db.VarChar(1000)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  medicalRecord MedicalRecord      @relation(fields: [medicalRecordId], references: [id], onDelete: Restrict)
+  patient       Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor        Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  items         PrescriptionItem[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([prescriptionDate])
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  prescriptionId String   @map("prescription_id") @db.Uuid
+  medicineName   String   @map("medicine_name") @db.VarChar(150)
+  dosage         String?  @db.VarChar(100)
+  frequency      String?  @db.VarChar(100)
+  duration       String?  @db.VarChar(100)
+  instructions   String?  @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
+  @@map("prescription_items")
+}
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+/// Bill with its own line items. Monetary values use DECIMAL, never float.
+model Bill {
+  id            String     @id @default(uuid()) @db.Uuid
+  billNumber    String     @unique @map("bill_number") @db.VarChar(20)
+  patientId     String     @map("patient_id") @db.Uuid
+  appointmentId String?    @map("appointment_id") @db.Uuid
+  billDate      DateTime   @map("bill_date") @db.Date
+  status        BillStatus @default(UNPAID)
+  subtotal      Decimal    @default(0) @db.Decimal(12, 2)
+  discount      Decimal    @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal    @default(0) @map("total_amount") @db.Decimal(12, 2)
+  notes         String?    @db.VarChar(1000)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  items       BillItem[]
+
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([billDate])
+  @@index([status])
+  @@map("bills")
+}
+
+model BillItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  billId      String   @map("bill_id") @db.Uuid
+  description String   @db.VarChar(255)
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(12, 2)
+  amount      Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@index([billId])
+  @@map("bill_items")
+}
