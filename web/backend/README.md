@@ -99,17 +99,34 @@ createdb -h localhost -p 5432 -U postgres hms_dev
 # or: psql -U postgres -c "CREATE DATABASE hms_dev;"
 ```
 
-Then apply the schema. The first time, create the initial migration:
+Then apply the schema. The initial migration is committed in this repository, so applying it is a
+single command:
 
 ```bash
-npm run prisma:migrate -- --name init
+npm run prisma:deploy
 ```
 
-This command creates `prisma/migrations/<timestamp>_init/migration.sql`, applies it, and
-regenerates the Prisma client. Subsequent schema changes follow the same pattern with a new name:
+That runs `prisma migrate deploy`, which applies every migration in `prisma/migrations/` that has
+not been applied yet and records it in the `_prisma_migrations` table. It is idempotent: running it
+again reports "No pending migrations to apply".
+
+When you change `prisma/schema.prisma` during development, create a follow-up migration:
 
 ```bash
 npm run prisma:migrate -- --name add_something
+```
+
+`prisma migrate dev` diffs your schema against the migration history, writes a new
+`prisma/migrations/<timestamp>_add_something/migration.sql`, applies it, and regenerates the client.
+Committing the generated SQL is what keeps every environment in sync.
+
+Migration layout:
+
+```
+prisma/migrations/
+├── 20260919091226_init/
+│   └── migration.sql      # initial schema: 10 tables, 4 enums, 31 indexes, 14 foreign keys
+└── migration_lock.toml    # pins the provider (postgresql) for the migration history
 ```
 
 Useful companions:
@@ -355,6 +372,10 @@ Dependencies are deliberately minimal: NestJS, Prisma (`@prisma/client`, `@prism
   set a longer secret in `.env`.
 - **`Can't reach database server` / migration errors** — confirm PostgreSQL is running on the host
   and port in `DATABASE_URL`, and that the database exists.
+- **`P3005: The database schema is not empty`** — the target database already contains tables that
+  were not created by these migrations (for example an older hand-made schema). Either point
+  `DATABASE_URL` at a fresh database or baseline the existing one:
+  `npx prisma migrate resolve --applied 20260919091226_init`.
 - **`prisma migrate` cannot download its engine / offline machine** — the CLI needs its engines the
   first time; run `npm run prisma:generate` once with network access, or point
   `PRISMA_SCHEMA_ENGINE_BINARY` at a local engine binary in air-gapped setups.
