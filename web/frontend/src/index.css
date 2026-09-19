@@ -1,0 +1,322 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Design system — dark-first, restrained, healthcare-appropriate.
+
+   Colours are declared as CSS variables so the light theme is a designed
+   counterpart of the dark one rather than an automatic inversion.
+   Everything is exposed to Tailwind through @theme inline below.
+--------------------------------------------------------------------------- */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Surfaces (light theme) */
+  --bg: #f5f8f7;
+  --surface: #ffffff;
+  --elevated: #ffffff;
+  --sunken: #eef2f1;
+  --border: #e0e7e5;
+  --border-strong: #c9d4d1;
+
+  /* Text */
+  --fg: #0d1615;
+  --fg-muted: #5a6a67;
+  --fg-subtle: #7d8b88;
+  --fg-inverted: #ffffff;
+
+  /* Accent — muted clinical teal, deliberately not neon */
+  --accent: #1c7563;
+  --accent-hover: #17614f;
+  --accent-fg: #ffffff;
+  --accent-soft: #e4f1ed;
+  --accent-ring: #1c756355;
+
+  /* Status */
+  --success: #17795a;
+  --success-soft: #e2f2ec;
+  --warning: #8f6516;
+  --warning-soft: #f7efdd;
+  --danger: #b23c31;
+  --danger-soft: #fbeae7;
+  --info: #2b5f96;
+  --info-soft: #e6eef8;
+
+  --overlay: rgb(10 18 17 / 0.45);
+  --shadow-color: 210 20% 40%;
+}
+
+.dark {
+  /* Surfaces */
+  --bg: #0b1110;
+  --surface: #111918;
+  --elevated: #17201f;
+  --sunken: #0d1413;
+  --border: #1f2a28;
+  --border-strong: #2c3a37;
+
+  /* Text */
+  --fg: #e7edeb;
+  --fg-muted: #93a3a0;
+  --fg-subtle: #6d7c79;
+  --fg-inverted: #08110f;
+
+  /* Accent */
+  --accent: #6fb39f;
+  --accent-hover: #82c4b0;
+  --accent-fg: #05140f;
+  --accent-soft: #16241f;
+  --accent-ring: #6fb39f4d;
+
+  /* Status */
+  --success: #5cb98d;
+  --success-soft: #12251e;
+  --warning: #d3a45c;
+  --warning-soft: #241d12;
+  --danger: #e0786c;
+  --danger-soft: #2a1815;
+  --info: #86aede;
+  --info-soft: #141d29;
+
+  --overlay: rgb(4 9 8 / 0.62);
+  --shadow-color: 200 40% 2%;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-sunken: var(--sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-fg: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+  --color-inverted: var(--fg-inverted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-overlay: var(--overlay);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.28);
+  --shadow-md: 0 4px 16px -6px hsl(var(--shadow-color) / 0.4), 0 1px 2px hsl(var(--shadow-color) / 0.24);
+  --shadow-lg: 0 24px 48px -24px hsl(var(--shadow-color) / 0.55), 0 2px 6px hsl(var(--shadow-color) / 0.3);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-fade-up: fade-up 0.24s var(--ease-out-soft) both;
+  --animate-fade-in: fade-in 0.2s var(--ease-out-soft) both;
+  --animate-scale-in: scale-in 0.18s var(--ease-out-soft) both;
+  --animate-overlay-in: fade-in 0.16s ease-out both;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-draw: draw 1.1s var(--ease-out-soft) both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: var(--dash-length, 100);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100dvh;
+  }
+
+  /* Visible, consistent focus treatment for keyboard users only. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+
+  /* Numeric columns line up when tabular figures are requested. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.014em;
+    text-wrap: balance;
+  }
+
+  /* Thin, unobtrusive scrollbars that respect the theme. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--fg-subtle);
+  }
+}
+
+@layer utilities {
+  /* Staggered entrance for lists of cards/rows: keep delays tiny and short. */
+  .stagger > * {
+    animation: fade-up 0.24s var(--ease-out-soft) both;
+  }
+  .stagger > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .stagger > *:nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .stagger > *:nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .stagger > *:nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .stagger > *:nth-child(5) {
+    animation-delay: 160ms;
+  }
+  .stagger > *:nth-child(6) {
+    animation-delay: 200ms;
+  }
+  .stagger > *:nth-child(n + 7) {
+    animation-delay: 240ms;
+  }
+
+  .press {
+    transition:
+      transform 0.12s var(--ease-out-soft),
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .press:hover {
+    transform: scale(1.015);
+  }
+  .press:active {
+    transform: scale(0.98);
+  }
+
+  .surface-grid {
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 10%, transparent 75%);
+  }
+}
+
+/* Motion is decorative: remove it entirely when the user asks for less. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .press:hover,
+  .press:active {
+    transform: none;
+  }
+}

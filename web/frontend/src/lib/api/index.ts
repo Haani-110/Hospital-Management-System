@@ -1,0 +1,11 @@
+export * from './types';
+export * from './client';
+export * as authApi from './auth';
+export * as patientsApi from './patients';
+export * as doctorsApi from './doctors';
+export * as appointmentsApi from './appointments';
+export * as medicalRecordsApi from './medical-records';
+export * as prescriptionsApi from './prescriptions';
+export * as billsApi from './bills';
+export * as reportsApi from './reports';
+export * as usersApi from './users';

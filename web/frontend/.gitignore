@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Environment files — never commit real values
+.env
+.env.*
+!.env.example
+
+# Editor / OS noise
+.DS_Store
+*.log
