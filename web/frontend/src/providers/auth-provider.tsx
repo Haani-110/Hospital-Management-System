@@ -67,9 +67,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authApi.login(credentials);
       setToken(response.accessToken);
-      setUser(response.user);
+
+      // Confirm the fresh token against the API (`GET /auth/me`) before any
+      // protected screen renders. A session the API rejects has to fail here,
+      // where the form can explain it, instead of showing the dashboard for a
+      // moment and bouncing straight back to this screen.
+      let profile = response.user;
+      try {
+        profile = await authApi.getCurrentUser();
+      } catch (error) {
+        if (!(error instanceof ApiError && error.isNetworkError)) {
+          clearToken();
+          setUser(null);
+          setStatus('unauthenticated');
+          if (error instanceof ApiError && error.isUnauthorized) {
+            throw new ApiError(401, [
+              'Signed in, but the API did not accept the session. Please try again.',
+            ]);
+          }
+          throw error;
+        }
+        // Unreachable right now: keep the session. The login response already
+        // proved the credentials and carried the profile.
+      }
+
+      setUser(profile);
       setStatus('authenticated');
-      return response.user;
+      return profile;
     } finally {
       setIsSigningIn(false);
     }

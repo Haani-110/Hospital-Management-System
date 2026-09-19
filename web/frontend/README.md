@@ -117,11 +117,16 @@ With the backend's demo seed (`SEED_DEMO_DATA=true`) you get three roles to expl
 | `DOCTOR`       | `doctor`       | Clinical screens; no billing, no user accounts          |
 | `RECEPTIONIST` | `receptionist` | Clinical screens plus billing                          |
 
-Sign-in calls `POST /api/v1/auth/login` and stores the returned JWT in `sessionStorage`
-(cleared when the tab closes). On reload the app re-validates the token with
-`GET /api/v1/auth/me` before rendering any protected screen. Expired or invalid tokens send
-you back to the sign-in screen; a `403` explains that your role is not allowed and keeps you
-signed in.
+Sign-in calls `POST /api/v1/auth/login`, stores the returned JWT in `sessionStorage` (cleared when
+the tab closes) and then confirms the brand-new session with `GET /api/v1/auth/me` before any
+protected screen renders — a token the API will not accept is reported by the form itself instead
+of showing up as an instant, unexplained return to the sign-in screen. On reload the stored token
+is validated the same way. Expired or invalid tokens send you back to the sign-in screen; a `403`
+explains that your role is not allowed and keeps you signed in.
+
+The token lives in `sessionStorage` and is mirrored in one global slot shared by every copy of
+`src/lib/api/token-store.ts`, so a duplicated module (a dev-server hot update, a re-imported
+chunk) cannot leave the app signed in while its requests go out unauthenticated.
 
 ## What is implemented
 
@@ -265,6 +270,7 @@ No password is stored in this repository — they are read from the environment 
 | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | “Cannot reach the API” on every screen         | The backend is not running. Start it on port 4000 and confirm `curl http://localhost:4000/api/v1/health`.  |
 | Login succeeds but requests fail with 401      | `JWT_SECRET` changed since the token was issued. Sign out and sign in again.                                |
+| Signed in, then instantly back at sign-in      | The request after `POST /auth/login` reached the API without a token (the backend log shows it as `401` in ~0 ms). Reload the page — a dev-server hot update can leave one copy of the token store holding the session while another sends the requests — and confirm the request carries `Authorization: Bearer …` in the Network tab. |
 | Browser console shows a CORS error             | Your origin is not in the backend's `CORS_ORIGINS` (default allows `http://localhost:3000`).                |
 | The screen is empty rather than broken         | Your database has no records yet — run the backend seed script.                                            |
 | Billing or Users screens say “no permission”   | Working as intended: those endpoints are ADMIN/RECEPTIONIST (bills) and ADMIN (users) only.                |

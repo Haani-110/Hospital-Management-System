@@ -19,6 +19,10 @@ const adminUser: User = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
+function requestUrl(input: RequestInfo | URL): string {
+  return typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -76,15 +80,22 @@ describe('login', () => {
     expect(getToken()).toBeNull();
   });
 
-  it('stores the token and redirects after a successful sign-in', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({
-        accessToken: 'jwt-token',
-        tokenType: 'Bearer',
-        expiresIn: '15m',
-        user: adminUser,
-      }),
-    );
+  it('stores the token, confirms the session and redirects after a successful sign-in', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = requestUrl(input);
+      if (url.endsWith('/auth/login')) {
+        return Promise.resolve(
+          jsonResponse({
+            accessToken: 'jwt-token',
+            tokenType: 'Bearer',
+            expiresIn: '15m',
+            user: adminUser,
+          }),
+        );
+      }
+      if (url.endsWith('/auth/me')) return Promise.resolve(jsonResponse(adminUser));
+      return Promise.resolve(jsonResponse({ message: 'Not found' }, 404));
+    });
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
 
@@ -95,7 +106,39 @@ describe('login', () => {
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
     expect(getToken()).toBe('jwt-token');
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock.mock.calls.map(([input]) => requestUrl(input))).toEqual([
+      expect.stringContaining('/auth/login'),
+      expect.stringContaining('/auth/me'),
+    ]);
+  });
+
+  it('reports a session the API rejects instead of bouncing to the login screen', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = requestUrl(input);
+      if (url.endsWith('/auth/login')) {
+        return Promise.resolve(
+          jsonResponse({
+            accessToken: 'jwt-token',
+            tokenType: 'Bearer',
+            expiresIn: '15m',
+            user: adminUser,
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse({ statusCode: 401, message: 'Unauthorized' }, 401));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderLogin();
+    await user.type(screen.getByLabelText(/username/i), 'admin');
+    await user.type(screen.getByLabelText(/^password/i), 'correct-password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/did not accept the session/i);
+    expect(getToken()).toBeNull();
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
   it('toggles password visibility accessibly', async () => {
